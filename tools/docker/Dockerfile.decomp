@@ -1,0 +1,17 @@
+# The Mario Party decomp's build (lib/marioparty's README and tools/install.sh): MIPS binutils, a host gcc for its
+# syntax check (-m32, hence the multilib), the 32-bit libc its KMC gcc 2.7.2 binaries run on, and Python with a venv
+# for splat and spimdisasm (its requirements.txt, installed into the checkout's venv/ by tools/build_decomp.sh).
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        binutils-mips-linux-gnu \
+        build-essential \
+        ca-certificates \
+        gcc-multilib \
+        git \
+        make \
+        python3 \
+        python3-pip \
+        python3-venv && \
+    rm -rf /var/lib/apt/lists/*
