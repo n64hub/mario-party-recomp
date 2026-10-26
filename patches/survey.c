@@ -3,13 +3,15 @@
 // to its minigames. It does nothing unless a script asks.
 //
 // A script finds this struct in RDRAM by its two magic words. It writes an overlay's index, an event and a stat (as
-// omOvlGotoEx takes them, src/objmain.c), the overlay to take the place of in `from` (-1 for any), then `request`. The
-// next time the game goes to that overlay, it goes to the one asked for instead: a hook at omOvlGotoEx's start (us.toml)
-// changes its arguments (src/game/survey.cpp). So the game leaves the overlay it is in its own way, with what it frees
-// and sets up as it does, which a call of omOvlGotoEx from elsewhere skips: called from the village, the Mini-Game
-// House's setup read through a message window the village had not closed. Going from the overlay a board starts from
-// (0x3E, the rules' board, which the village's warp pipe leads to on a new save) to another board or a minigame, the
-// four players are set up as a board has them.
+// omOvlGotoEx takes them, src/objmain.c; -1 keeps the game's own), the overlay to take the place of in `from` (-1 for
+// any), then `request`. The next time the game goes to that overlay (with a request of 1; every time, with 2, until a
+// script clears it), it goes to the one asked for instead: a hook at omOvlGotoEx's start (us.toml) changes its
+// arguments (src/game/survey.cpp). A board takes 2 and -1: the hub goes to the board again with each part of a game
+// (its setup, its turns, back from each minigame). So the game leaves the overlay it is in its own way, with what it
+// frees and sets up as it does, which a call of omOvlGotoEx from elsewhere skips: called from the village, the
+// Mini-Game House's setup read through a message window the village had not closed. Going from the overlay a board
+// starts from (0x3E, the rules' board, which the village's warp pipe leads to on a new save) to another board or a
+// minigame, the four players are set up as a board has them.
 //
 // `warps` counts the requests taken, and every frame the struct carries the overlay playing (the one omOvlGotoEx last
 // went to) and a count of the scheduler's frames (HuPrcCall, patches/process.c, calls survey_tick once a frame), which

@@ -21,7 +21,9 @@ extern "C" void recomp_survey_register(uint8_t* rdram, recomp_context* ctx) {
 }
 
 // The hook: omOvlGotoEx(overlay, event, stat)'s arguments, replaced by the request's if there is one and the game is
-// going to the overlay it names in `from` (or `from` is -1).
+// going to the overlay it names in `from` (or `from` is -1). An event or stat of -1 keeps the game's own. A request of
+// 1 is taken once; one of 2 every time until a script clears it, for a board, which the hub goes to again and again
+// with different events (its turns, after each minigame).
 extern "C" void mp_survey_goto(uint8_t* rdram, gpr* overlay, gpr* event, gpr* stat) {
     if (survey_vram == 0 || MEM_W(REQUEST, survey_vram) == 0) {
         return;
@@ -31,8 +33,14 @@ extern "C" void mp_survey_goto(uint8_t* rdram, gpr* overlay, gpr* event, gpr* st
         return;
     }
     *overlay = (int32_t)MEM_W(OVERLAY, survey_vram);
-    *event = (int32_t)MEM_W(EVENT, survey_vram);
-    *stat = (int32_t)MEM_W(STAT, survey_vram);
-    MEM_W(REQUEST, survey_vram) = 0;
+    if ((int32_t)MEM_W(EVENT, survey_vram) != -1) {
+        *event = (int32_t)MEM_W(EVENT, survey_vram);
+    }
+    if ((int32_t)MEM_W(STAT, survey_vram) != -1) {
+        *stat = (int32_t)MEM_W(STAT, survey_vram);
+    }
+    if (MEM_W(REQUEST, survey_vram) == 1) {
+        MEM_W(REQUEST, survey_vram) = 0;
+    }
     MEM_W(WARPS, survey_vram) = MEM_W(WARPS, survey_vram) + 1;
 }

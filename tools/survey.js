@@ -2,12 +2,14 @@
 // (tools/play_plan.json): finds patches/survey.c's struct in RDRAM by its magic words and offers overlay(), the overlay
 // playing (the one omOvlGotoEx last went to: 0x69 Mushroom Village, 0x3E the board Toad teaches the rules on, 0x36-0x3D
 // the other boards, 0x00-0x34 the minigames; the decomp's src/overlays and its splat.yaml number them all);
-// untilOverlay(overlay, ms), which resolves true once that overlay plays, false after ms; go(from, overlay, event, stat,
-// ms), which asks the game to go to overlay (with omOvlGotoEx's event and stat) the next time it leaves for `from` (-1:
-// for anywhere) and resolves true once it has gone there, false after ms; frames(), the scheduler's frame count (one a
-// frame the game makes: its own rate); mark() and rate(), how many frames a second the game made from the one to the
-// other; human(player), that player (0-3) played from the keyboard and pad 1 rather than by the computer (the CPU bit of
-// the player's flags in GwPlayer, 0x800F32B0, 0x30 bytes a player), which a board's start sets back from the save.
+// untilOverlay(overlay, ms), which resolves true once that overlay plays, false after ms; ask(from, overlay, event,
+// stat, every), which asks the game to go to overlay (with omOvlGotoEx's event and stat, -1 for the game's own) the
+// next time it leaves for `from` (-1: for anywhere), or every time with `every` (a board: patches/survey.c); warps(),
+// how many times it has; go(from, overlay, event, stat, ms), ask() once and resolve true once the game has gone there,
+// false after ms; frames(), the scheduler's frame count (one a frame the game makes: its own rate); mark() and rate(),
+// how many frames a second the game made from the one to the other; human(player), that player (0-3) played from the
+// keyboard and pad 1 rather than by the computer (the CPU bit of the player's flags in GwPlayer, 0x800F32B0, 0x30 bytes
+// a player), which a board's start sets back from the save.
 (() => {
   const magic = (a) => n64r(a) === 0x4d505254 && n64r(a + 4) === 0x53525659;
   if (!window.__survey) {
@@ -24,16 +26,22 @@
     while (window.overlay() !== overlay && Date.now() < end) await sleep(100);
     return window.overlay() === overlay;
   };
-  window.go = async (from, overlay, event, stat, ms) => {
-    const warps = n64r(s + 28);
+  window.warps = () => n64r(s + 28) >>> 0;
+  window.ask = (from, overlay, event, stat, every) => {
     n64w(s + 12, from >>> 0);
     n64w(s + 16, overlay);
     n64w(s + 20, event);
     n64w(s + 24, stat);
-    n64w(s + 8, 1);
+    n64w(s + 8, every ? 2 : 1);
+    const when = every ? ' every time' : '';
+    return `asked for ${overlay.toString(16)} in place of ${from.toString(16)}${when}, ${window.warps()} taken before`;
+  };
+  window.go = async (from, overlay, event, stat, ms) => {
+    const warps = window.warps();
+    window.ask(from, overlay, event, stat);
     const end = Date.now() + ms;
-    while ((n64r(s + 28) === warps || window.overlay() !== overlay) && Date.now() < end) await sleep(100);
-    return n64r(s + 28) !== warps && window.overlay() === overlay;
+    while ((window.warps() === warps || window.overlay() !== overlay) && Date.now() < end) await sleep(100);
+    return window.warps() !== warps && window.overlay() === overlay;
   };
   window.mark = () => { window.__mark = [window.frames(), performance.now()]; return 'frames ' + window.__mark[0]; };
   window.rate = () => {
