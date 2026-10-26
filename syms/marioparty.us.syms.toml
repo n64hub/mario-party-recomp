@@ -3125,7 +3125,7 @@ functions = [
     { name = "func_800F978C_CrazyCutter", vram = 0x800F978C, size = 0x3C },
     { name = "func_800FA38C_CrazyCutter", vram = 0x800FA38C, size = 0x1E0 },
     { name = "func_800FAAB0_CrazyCutter", vram = 0x800FAAB0, size = 0x1C },
-    { name = "func_800FCCC8_CrazyCutter", vram = 0x800FCCC8, size = 0x24 },
+    { name = "func_800FCCC8_CrazyCutter", vram = 0x800FCCC4, size = 0x28 },
     { name = "func_800F69EC_CrazyCutter", vram = 0x800F69EC, size = 0x118 },
     { name = "func_800F90E4_CrazyCutter", vram = 0x800F90E4, size = 0x3DC },
     { name = "func_800FAC38_CrazyCutter", vram = 0x800FAC38, size = 0x354 },
@@ -3167,7 +3167,7 @@ functions = [
     { name = "func_800F686C_CrazyCutter", vram = 0x800F686C, size = 0x58 },
     { name = "func_800FC8C0_CrazyCutter", vram = 0x800FC8C0, size = 0xD8 },
     { name = "func_800FC4F0_CrazyCutter", vram = 0x800FC4F0, size = 0x21C },
-    { name = "func_800FCC64_CrazyCutter", vram = 0x800FCC64, size = 0x64 },
+    { name = "func_800FCC64_CrazyCutter", vram = 0x800FCC64, size = 0x60 },
 ]
 
 [[section]]
