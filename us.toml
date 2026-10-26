@@ -18,3 +18,7 @@ stubs = [
     # runtime never reports: it writes to its stack at an offset N64Recomp can't analyze.
     "__LeoBootGame2",
 ]
+# Functions written as <name>_recomp: their names are a system library's too (PlaySound is Windows' winmm's).
+renamed = [
+    "PlaySound",
+]

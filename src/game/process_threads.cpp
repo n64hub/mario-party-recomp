@@ -55,6 +55,10 @@ namespace {
     // Thrown on a process's thread to unwind it when the process ends.
     struct prc_exit {};
 
+#ifdef MP_PROCESS_STATS
+    using stats_clock = std::chrono::steady_clock;
+#endif
+
     struct Worker {
         std::thread thread;
         // The scheduler signals wake to run the process, the process signals back when it gives the baton back.
@@ -75,7 +79,6 @@ namespace {
     };
 
 #ifdef MP_PROCESS_STATS
-    using stats_clock = std::chrono::steady_clock;
     struct Stats {
         stats_clock::time_point since = stats_clock::now();
         uint64_t resumes = 0;
@@ -94,8 +97,7 @@ namespace {
         }
         double overhead_us = std::chrono::duration<double, std::micro>(stats.resuming - stats.running).count();
         printf("[processes] %zu alive (at most %zu), %zu threads, %.0f resumes/s, %.1f us each beyond the process, "
-               "%.2f ms/s in all
-", alive, stats.most_alive, stats.threads, stats.resumes / seconds,
+               "%.2f ms/s in all\n", alive, stats.most_alive, stats.threads, stats.resumes / seconds,
                stats.resumes ? overhead_us / stats.resumes : 0.0, overhead_us / 1000.0 / seconds);
         fflush(stdout);
         size_t threads = stats.threads;
