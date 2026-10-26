@@ -14,7 +14,7 @@ shift || true
 git -C "$ROOT" submodule update --init --recursive lib/N64ModernRuntime lib/rt64 lib/RecompFrontend lib/N64Recomp-browser
 # The decomp only for its headers, which patches/ includes.
 git -C "$ROOT" submodule update --init lib/marioparty
-IMAGE=fzx-web:$(sha256sum "$ROOT/tools/docker/Dockerfile.web" | cut -c1-12)
+IMAGE=mp-web:$(sha256sum "$ROOT/tools/docker/Dockerfile.web" | cut -c1-12)
 mkdir -p "$ROOT/build/home" "$ROOT/build/ccache-web"
 docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -t "$IMAGE" -f "$ROOT/tools/docker/Dockerfile.web" "$ROOT/tools/docker"
 docker run --rm -u "$(id -u):$(id -g)" -v "$ROOT:/src" -w /src -e CCACHE_DIR=/src/build/ccache-web -e HOME=/src/build/home "$IMAGE" bash -euo pipefail -c "
