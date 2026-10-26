@@ -10,13 +10,14 @@
 //
 // A process killed while it waits (HuPrcKill sets EXEC_PROCESS_DEAD) is resumed in HuPrcEnd on a console: the
 // scheduler makes HuPrcEnd its jmp_buf's function. A new process starts at its jmp_buf's function, which covers one
-// killed before it ran, and one that was running checks for it when it wakes (prc_wait).
+// killed before it ran, and one that was running checks for it when it wakes (prc_wait). It starts with the registers
+// its jmp_buf holds, as the longjmp into it loaded them: the game reads some before it sets them.
 
 void HuUnlinkPrc(Process** root, Process* process);
 void HuPrcEnd(void);
 
 // The natives (src/game/process_threads.cpp).
-s32 recomp_prc_resume(Process* process, process_func func, void* sp);
+s32 recomp_prc_resume(Process* process, jmp_buf* jump);
 void recomp_prc_yield(void);
 void recomp_prc_exit(void);
 void recomp_prc_reset(process_func end);
@@ -124,7 +125,7 @@ RECOMP_PATCH void HuPrcCall(s32 time) {
 
             case 0:
                 // @recomp longjmp(&cur_proc_local->prc_jump, 1)
-                ret = recomp_prc_resume(cur_proc_local, cur_proc_local->prc_jump.func, cur_proc_local->prc_jump.sp);
+                ret = recomp_prc_resume(cur_proc_local, &cur_proc_local->prc_jump);
                 break;
         }
     }

@@ -341,7 +341,9 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/lib/RecompFrontend)
 # Prints what the process scheduler's threads cost every 5 seconds (src/game/process_threads.cpp).
 option(MP_PROCESS_STATS "Print the process scheduler's counts and costs" OFF)
 if (MP_PROCESS_STATS)
-    target_compile_definitions(MarioPartyRecompiled PRIVATE MP_PROCESS_STATS)
+    # Only its two files, so turning it on rebuilds them and not the game.
+    set_source_files_properties(${CMAKE_SOURCE_DIR}/src/game/process_threads.cpp ${CMAKE_SOURCE_DIR}/src/game/recomp_api.cpp
+        PROPERTIES COMPILE_DEFINITIONS MP_PROCESS_STATS)
 endif()
 
 if (MP_PATCHES)

@@ -491,9 +491,12 @@ int main(int argc, char** argv) {
         .get_rsp_microcode = get_rsp_microcode,
     };
 
+    // Presented at the VI, not early: the game draws each frame in several RSP tasks (src/engine/graphics.c's swap chain:
+    // the ground, then the shadows, the characters and the text), and RT64's early present shows a framebuffer as soon
+    // as any of them ends, so the screen flickers between parts of a frame.
     ultramodern::renderer::callbacks_t renderer_callbacks{
         .create_render_context = [](uint8_t* rdram, ultramodern::renderer::WindowHandle window_handle, bool developer_mode) {
-            return recompui::renderer::create_render_context(rdram, window_handle, ultramodern::renderer::PresentationMode::PresentEarly, developer_mode);
+            return recompui::renderer::create_render_context(rdram, window_handle, ultramodern::renderer::PresentationMode::SkipBuffering, developer_mode);
         },
     };
 

@@ -16,9 +16,10 @@ Each live process runs on a native thread of its own, and exactly one of them ru
 process at a time:
 
 - `HuPrcCall` is the game's loop, line for line, with `recomp_prc_resume` where it longjmped into a process. The first
-  resume of a process starts a thread at its function with its RDRAM stack; a later one wakes its thread. Either way
-  the scheduler waits until the process hands the baton back, then goes on with what the longjmp back would have
-  returned: 1 when the process slept, 2 when it ended.
+  resume of a process starts a thread at its function with its RDRAM stack and the saved registers its jmp_buf holds
+  (s0-s7, fp and f20-f31), as the longjmp loaded them; a later one wakes its thread. Either way the scheduler waits
+  until the process hands the baton back, then goes on with what the longjmp back would have returned: 1 when the
+  process slept, 2 when it ended.
 - `HuPrcSleep` and `HuPrcChildWatch` hand the baton back (`recomp_prc_yield`) and wait to be resumed, where they
   setjmped and longjmped.
 - `HuPrcTerminate` ends the process (`recomp_prc_exit`), which throws out of the recompiled code to its thread's loop,
@@ -26,6 +27,11 @@ process at a time:
 - `HuPrcInit` ends every process's thread (`recomp_prc_reset`), since none outlives the list it was on.
 - A process killed while it waits (`HuPrcKill`) is resumed in `HuPrcEnd` on a console, and here too: a process that
   wakes checks for it, and one that never ran starts there.
+
+The engine never setjmps a new process's jmp_buf, so its registers are whatever the process's heap held, and the game
+reads some of them before it sets them: the warp pipe's room, where Toad sends the players off on an adventure, reads
+s3 in its first message's wait, and with 0 there it closes and reopens Toad's window over and over. Started with the
+jmp_buf's registers, it waits for A as on a console.
 
 The thread a process runs on takes the identity of the game thread that resumed it (N64ModernRuntime's
 `thread_self` and the FPU's rounding mode), so what a process does, a blocking `osRecvMesg` included, is that game
@@ -44,7 +50,8 @@ that says how they hand the baton over).
 A game on the same engine takes both files:
 
 - `src/game/process_threads.cpp` as it is. Nothing in it is Mario Party's: its natives take a process's key (its
-  address), its function and its stack pointer, and the engine's `HuPrcEnd` for a process whose function returns.
+  address) and its jmp_buf, in the engine's setjmp's layout (sp, the function, s0-s7, fp and f20-f31, a word each),
+  and the engine's `HuPrcEnd` for a process whose function returns.
 - `patches/process.c`, with the game's own names: the five functions it patches are the engine's, and each patch is
   the game's function with its setjmp and longjmp swapped for a native. A game whose decomp has these functions under
   other names, or whose `Process` names its fields differently, changes only those names.
@@ -53,8 +60,17 @@ A game on the same engine takes both files:
 Then build the game with `MP_PROCESS_STATS` (below) and look at what it prints: a board here keeps up to the number in
 How much it costs alive.
 
+Not the scheduler's, but the same engine's: its swap chain (`src/engine/graphics.c`) draws each frame in several RSP
+tasks, the ground first and the text last, so the game presents at the VI (`src/main/main.cpp`). RT64's early present
+shows a framebuffer as soon as any task that draws into it ends, and the screen flickers between parts of a frame.
+
 ## How much it costs
 
 Built with `-DMP_PROCESS_STATS=ON`, the program prints every 5 seconds how many processes are alive, how many threads
 it has made, how many resumes a second the scheduler makes and what each costs beyond the process's own run (the two
 handoffs, from the scheduler's thread to the process's and back).
+
+On a desktop GPU (an idle host), on the rules board Toad shows a new adventure on, which four computer players play
+with the board engine: 15 to 18 processes alive, 30 threads made in all, about 450 resumes a second (15 a frame at the
+game's 30), each 7 to 10 us beyond the process, which is 3.3 to 4.6 ms a second, under half a percent of a core. The
+menus and the warp pipe's room keep about as many alive.
