@@ -70,7 +70,11 @@ Built with `-DMP_PROCESS_STATS=ON`, the program prints every 5 seconds how many 
 it has made, how many resumes a second the scheduler makes and what each costs beyond the process's own run (the two
 handoffs, from the scheduler's thread to the process's and back).
 
-On a desktop GPU (an idle host), on the rules board Toad shows a new adventure on, which four computer players play
-with the board engine: 15 to 18 processes alive, 30 threads made in all, about 450 resumes a second (15 a frame at the
-game's 30), each 7 to 10 us beyond the process, which is 3.3 to 4.6 ms a second, under half a percent of a core. The
-menus and the warp pipe's room keep about as many alive.
+On the rules board Toad shows a new adventure on, which four computer players play with the board engine, a board
+keeps 15 to 18 processes alive, and the scheduler makes about 450 resumes a second, 15 a frame at the game's 30. The
+title screens keep the most alive: up to 29, with about 900 resumes a second. 30 threads are made in all.
+
+What each resume costs beyond the process:
+- On the desktop, on an idle host: 7 to 10 us, which is 3.3 to 4.6 ms a second, under half a percent of a core.
+- In Chrome on a desktop (a busy host): 22 to 28 us, which is 10 to 12 ms a second, about 0.4 ms of each of the
+  game's frames. A handoff there is a futex wait and wake between two of the page's workers.
