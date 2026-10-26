@@ -1,0 +1,288 @@
+// Hudson's process scheduler (patches/process.c) on native threads, one per live process, run one at a time: the
+// same on the desktop and the web.
+//
+// The game gives each process its own stack in RDRAM and switches between them with its own setjmp/longjmp, which
+// recompiled code can't do: a process's state is on the native stack too. The desktop recomps of Hudson's games
+// (Bomberman 64's, Mario Party 3's) make each process a coroutine (minicoro), which in a browser needs Asyncify over the
+// whole recompiled game. Here each process instead runs on a thread of its own, and exactly one thread runs at a time:
+// the scheduler hands a process the baton (resume) and waits until it hands it back (yield, or exit when it ends), as
+// ultramodern runs the game's threads one at a time. The thread a process runs on takes the identity of the game thread
+// that resumed it (ultramodern's thread_self, the FPU's rounding mode), so whatever the process does, a blocking
+// osRecvMesg included, is that game thread's doing. Nothing here is the game's: the patches pass a process's key (its
+// address), its entry point and its stack, so a game on the same engine (Mario Party 2 and 3) takes this file as it is.
+//
+// A thread is kept when its process ends and handed the next new process, so a board's dozens of processes cost no
+// thread creation after the first time. A process ends by throwing (prc_exit) out of the recompiled code to its
+// thread's loop, as ultramodern ends a game thread (the page builds with -fwasm-exceptions).
+//
+// The natives (patches/process.c says when each is called):
+//   recomp_prc_resume(key, entry, sp) -> 1 when the process slept, 2 when it ended
+//   recomp_prc_yield()                   from a process: back to the scheduler until it is resumed
+//   recomp_prc_exit()                    from a process: it has ended; never returns
+//   recomp_prc_reset()                   ends every process's thread (the scheduler's init)
+//
+// Built with MP_PROCESS_STATS (CMake option of that name), it prints every 5 seconds how many processes are alive, how
+// many resumes a second the scheduler makes, and what a resume costs beyond the process's own run: two handoffs.
+
+#include <cfenv>
+#include <chrono>
+#include <cstdio>
+#include <algorithm>
+#include <cstdlib>
+#include <mutex>
+#include <thread>
+#include <unordered_map>
+#include <vector>
+
+#include "recomp.h"
+#include "librecomp/helpers.hpp"
+#include "librecomp/overlays.hpp"
+#include "ultramodern/ultramodern.hpp"
+#include "lightweightsemaphore.h"
+
+// ultramodern's (threads.cpp): which game thread this native thread is.
+extern thread_local PTR(OSThread) thread_self;
+extern thread_local bool is_game_thread;
+#if defined(__wasm__)
+// N64Recomp-web's recomp.h: the rounding mode the game set, per thread.
+extern "C" thread_local uint32_t recomp_rounding_mode;
+#endif
+
+namespace {
+    constexpr int32_t reason_slept = 1;
+    constexpr int32_t reason_ended = 2;
+
+    // Thrown on a process's thread to unwind it when the process ends.
+    struct prc_exit {};
+
+    struct Worker {
+        std::thread thread;
+        // The scheduler signals wake to run the process, the process signals back when it gives the baton back.
+        moodycamel::LightweightSemaphore wake;
+        moodycamel::LightweightSemaphore back;
+        uint8_t* rdram = nullptr;
+        uint32_t key = 0;
+        uint32_t entry = 0;
+        uint32_t sp = 0;
+        // The resuming game thread's identity, taken each time the process is resumed.
+        PTR(OSThread) owner = NULLPTR;
+        uint32_t rounding = 0;
+        int32_t reason = 0;
+        bool killed = false;
+#ifdef MP_PROCESS_STATS
+        stats_clock::time_point woken;
+#endif
+    };
+
+#ifdef MP_PROCESS_STATS
+    using stats_clock = std::chrono::steady_clock;
+    struct Stats {
+        stats_clock::time_point since = stats_clock::now();
+        uint64_t resumes = 0;
+        stats_clock::duration resuming{};
+        stats_clock::duration running{};
+        size_t most_alive = 0;
+        size_t threads = 0;
+    } stats;
+
+    void print_stats(size_t alive) {
+        stats.most_alive = std::max(stats.most_alive, alive);
+        auto now = stats_clock::now();
+        double seconds = std::chrono::duration<double>(now - stats.since).count();
+        if (seconds < 5.0) {
+            return;
+        }
+        double overhead_us = std::chrono::duration<double, std::micro>(stats.resuming - stats.running).count();
+        printf("[processes] %zu alive (at most %zu), %zu threads, %.0f resumes/s, %.1f us each beyond the process, "
+               "%.2f ms/s in all
+", alive, stats.most_alive, stats.threads, stats.resumes / seconds,
+               stats.resumes ? overhead_us / stats.resumes : 0.0, overhead_us / 1000.0 / seconds);
+        fflush(stdout);
+        size_t threads = stats.threads;
+        stats = Stats{};
+        stats.threads = threads;
+    }
+#endif
+
+    std::mutex workers_mutex;
+    std::vector<Worker*> idle;
+    std::unordered_map<uint32_t, Worker*> running;
+    // The process this thread runs, null on any other thread.
+    thread_local Worker* current = nullptr;
+    uint32_t end_vram = 0;
+
+    uint32_t get_rounding() {
+#if defined(__wasm__)
+        return recomp_rounding_mode;
+#else
+        return static_cast<uint32_t>(fegetround());
+#endif
+    }
+
+    void set_rounding(uint32_t mode) {
+#if defined(__wasm__)
+        recomp_rounding_mode = mode;
+#else
+        fesetround(static_cast<int>(mode));
+#endif
+    }
+
+    // Takes the identity of the game thread that resumed this process.
+    void take_identity(Worker* w) {
+        thread_self = w->owner;
+        is_game_thread = true;
+        set_rounding(w->rounding);
+    }
+
+    // Gives the baton back to the scheduler and waits for it again; throws prc_exit if the process was ended
+    // meanwhile (recomp_prc_reset).
+    void hand_back(Worker* w, int32_t reason) {
+#ifdef MP_PROCESS_STATS
+        stats.running += stats_clock::now() - w->woken;
+#endif
+        w->reason = reason;
+        w->back.signal();
+        w->wake.wait();
+        if (w->killed) {
+            throw prc_exit{};
+        }
+#ifdef MP_PROCESS_STATS
+        w->woken = stats_clock::now();
+#endif
+        take_identity(w);
+    }
+
+    void run_process(Worker* w) {
+        recomp_context ctx{};
+        ctx.r29 = static_cast<int32_t>(w->sp);
+        ctx.mips3_float_mode = 0;
+        ctx.f_odd = &ctx.f0.u32h;
+        get_function(static_cast<int32_t>(w->entry))(w->rdram, &ctx);
+        // A process that returns ends as HuPrcEnd ends it, which a process that returns on a console would not reach
+        // (its return address is whatever the jmp_buf held): kill its children, unlink it, run its destructor.
+        if (end_vram != 0) {
+            get_function(static_cast<int32_t>(end_vram))(w->rdram, &ctx);
+        }
+        throw prc_exit{};
+    }
+
+    void worker_loop(Worker* w) {
+        current = w;
+        ultramodern::set_native_thread_name("Process");
+        ultramodern::set_native_thread_priority(ultramodern::ThreadPriority::High);
+        while (true) {
+            w->wake.wait();
+            if (!w->killed) {
+#ifdef MP_PROCESS_STATS
+                w->woken = stats_clock::now();
+#endif
+                take_identity(w);
+                try {
+                    run_process(w);
+                } catch (prc_exit&) {
+                }
+            }
+            {
+                std::lock_guard lock{ workers_mutex };
+                running.erase(w->key);
+                w->killed = false;
+                idle.push_back(w);
+            }
+#ifdef MP_PROCESS_STATS
+            stats.running += stats_clock::now() - w->woken;
+#endif
+            w->reason = reason_ended;
+            w->back.signal();
+        }
+    }
+
+    Worker* take_worker() {
+        std::lock_guard lock{ workers_mutex };
+        if (!idle.empty()) {
+            Worker* w = idle.back();
+            idle.pop_back();
+            return w;
+        }
+        Worker* w = new Worker{};
+#ifdef MP_PROCESS_STATS
+        stats.threads++;
+#endif
+        w->thread = std::thread{ worker_loop, w };
+        w->thread.detach();
+        return w;
+    }
+
+    // Hands the baton to w and waits until it comes back.
+    int32_t run_until_back(Worker* w) {
+        w->owner = thread_self;
+        w->rounding = get_rounding();
+        w->wake.signal();
+        w->back.wait();
+        return w->reason;
+    }
+}
+
+extern "C" void recomp_prc_resume(uint8_t* rdram, recomp_context* ctx) {
+    uint32_t key = _arg<0, uint32_t>(rdram, ctx);
+    uint32_t entry = _arg<1, uint32_t>(rdram, ctx);
+    uint32_t sp = _arg<2, uint32_t>(rdram, ctx);
+
+    Worker* w;
+    {
+        std::lock_guard lock{ workers_mutex };
+        auto it = running.find(key);
+        w = it == running.end() ? nullptr : it->second;
+    }
+    if (w == nullptr) {
+        w = take_worker();
+        w->rdram = rdram;
+        w->key = key;
+        w->entry = entry;
+        w->sp = sp;
+        std::lock_guard lock{ workers_mutex };
+        running[key] = w;
+    }
+#ifdef MP_PROCESS_STATS
+    auto start = stats_clock::now();
+    int32_t reason = run_until_back(w);
+    stats.resuming += stats_clock::now() - start;
+    stats.resumes++;
+    print_stats(running.size());
+    _return(ctx, reason);
+#else
+    _return(ctx, run_until_back(w));
+#endif
+}
+
+extern "C" void recomp_prc_yield(uint8_t* rdram, recomp_context* ctx) {
+    if (current == nullptr) {
+        fprintf(stderr, "recomp_prc_yield: not on a process's thread\n");
+        std::abort();
+    }
+    hand_back(current, reason_slept);
+}
+
+extern "C" void recomp_prc_exit(uint8_t* rdram, recomp_context* ctx) {
+    if (current == nullptr) {
+        fprintf(stderr, "recomp_prc_exit: not on a process's thread\n");
+        std::abort();
+    }
+    throw prc_exit{};
+}
+
+// recomp_prc_reset(end): ends every process's thread without running any more of it, and keeps end, the engine's
+// HuPrcEnd, for a process whose function returns.
+extern "C" void recomp_prc_reset(uint8_t* rdram, recomp_context* ctx) {
+    end_vram = _arg<0, uint32_t>(rdram, ctx);
+    std::vector<Worker*> left;
+    {
+        std::lock_guard lock{ workers_mutex };
+        for (auto& [key, w] : running) {
+            left.push_back(w);
+        }
+    }
+    for (Worker* w : left) {
+        w->killed = true;
+        run_until_back(w);
+    }
+}
