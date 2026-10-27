@@ -7,26 +7,17 @@
 // spaces and characters out past it on black.
 //
 // Here the game picks 11 columns of tiles, two more on the left and three more on the right (enough for 21:9 at any
-// scroll), and a row more above and below, from 112 slots (the game's 40 and 72 more here), through queues as long.
-// Each tile is drawn as two textured quads at its place on the map, in the 320x240 picture's projection kept to its
-// aspect (RT64's G_EX_ASPECT_ADJUST, so the window's sides show more of the map, not a stretched 4:3) and moved by the
-// scroll's matrix, inside a scissor that reaches the window's edges. RT64 draws frames between the game's at the
-// display's rate by interpolating matrices, and never moves a rectangle, so drawn as the game's rectangles the board
-// stood still between its frames while the 3D spaces on it moved, and slid under them in a pan: the scroll's matrix
-// is interpolated as the 3D camera is (the extra row and columns are what an in-between frame's picture can reach).
-// Past the map's own edges there is no tile, and as the game never clears a board's frame (its tiles cover 4:3), a
-// black fill goes behind the tiles, or the window's sides would show what an earlier frame left there. Everything else
-// is the game's as it was.
-//
-// The tiles take several times the commands the game's 36 rectangles do, and the display list buffer a frame is built
-// in has the size each scene gives it (func_8002B4C0) for what that scene draws, so the tiles go in display lists of
-// their own here, one of a ring of them a frame, which the frame's list branches to.
+// scroll), and a row more above and below (what a frame RT64 draws between two of the game's can reach), from 112 slots
+// (the game's 40 and 72 more here), through queues as long, and draws them through lib/mario-party-engine's
+// board_back.c: as quads at their places on the map, in a list of their own with black behind them, kept to the
+// picture's aspect and moved by an interpolated scroll, so the window's sides show more of the map, and the board pans
+// with its 3D spaces. Everything else is the game's as it was.
 
 #include "patches.h"
-#include "rt64_extended_gbi.h"
 #include "PR/os.h"
 #include "engine/mallocblock.h"
 #include "engine/data.h"
+#include "../lib/mario-party-engine/patches/board_back.h"
 
 #define TILE_WIDTH 64
 #define TILE_HEIGHT 48
@@ -88,8 +79,6 @@ u8* func_8004A868(u16 arg0);
 void func_80023728(void*);
 void func_8003A4EC(Gfx** gfx, void* image, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8,
                    s32 arg9, s32 arg10, s32 arg11, s32 arg12, s32 arg13, s32 arg14, s32 arg15, s32 arg16);
-void guOrtho(Mtx* m, f32 l, f32 r, f32 b, f32 t, f32 n, f32 f, f32 scale);
-void guTranslate(Mtx* m, f32 x, f32 y, f32 z);
 
 // The slots past the game's 40, and their tiles.
 static unk20 extra_slots[SLOTS - GAME_SLOTS];
@@ -100,24 +89,6 @@ static unk20* grid[COLUMNS][ROWS];
 static OSMesg read_messages[SLOTS];
 static OSMesg decompress_messages[SLOTS];
 static OSMesg done_messages[SLOTS];
-// The tiles' display lists: a tile is two halves of func_8003A4EC's 7 commands, a gSPVertex and a gSP2Triangles, and
-// a list is drawn while the frames after it are built, so there are more of them than the game's frames in flight.
-// Each has its tiles' corners and the scroll's matrix.
-#define TILE_COMMANDS (2 * (7 + 2))
-#define LIST_COMMANDS (COLUMNS * ROWS * TILE_COMMANDS + 64)
-#define LISTS 8
-static Gfx tile_lists[LISTS][LIST_COMMANDS];
-static Vtx tile_vertices[LISTS][COLUMNS * ROWS * 2 * 4];
-static Mtx tile_scroll[LISTS];
-static s32 tile_list_index;
-// The tiles' 320x240 picture, as the game's 3D draws in.
-static Mtx tile_projection;
-static Vp tile_viewport = { { { SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, G_MAXZ / 2, 0 },
-                              { SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, G_MAXZ / 2, 0 } } };
-// The scroll the frame before drew at, to tell a cut from a pan.
-static s32 last_left, last_top;
-#define TILE_SCROLL_GROUP 0x4D504247
-
 static unk20* slot(s32 i) {
     return (i < GAME_SLOTS) ? &D_800D6740[i] : &extra_slots[i - GAME_SLOTS];
 }
@@ -277,45 +248,21 @@ static void gfx_words(Gfx** gfx, u32 w0, u32 w1) {
     g->words.w1 = w1;
 }
 
-// A corner of a tile, at (x, y) on the map, its texel (s, t).
-static void corner(Vtx* v, s32 x, s32 y, s32 s, s32 t) {
-    v->v.ob[0] = x;
-    v->v.ob[1] = y;
-    v->v.ob[2] = 0;
-    v->v.flag = 0;
-    v->v.tc[0] = s << 6;
-    v->v.tc[1] = t << 6;
-    v->v.cn[0] = v->v.cn[1] = v->v.cn[2] = v->v.cn[3] = 0xFF;
-}
-
-// func_8004AAA8: a tile, as its two 64x24 halves, at (x, y) on the map. Each half is a quad, not the game's rectangle,
-// as RT64 moves a matrix's triangles to the display's rate between the game's frames and never a rectangle: the board
-// pans with its 3D spaces on them.
-static void draw_tile(Gfx** gfx, Vtx** vertices, u8* data, s32 x, s32 y) {
+// func_8004AAA8: a tile, as its two 64x24 halves, at (x, y) on the map, each a quad (board_back.c says why).
+static void draw_tile(Gfx** gfx, u8* data, s32 x, s32 y) {
     s32 half;
 
     for (half = 0; half < 2; half++) {
-        Vtx* v = *vertices;
-        s32 top = y + half * (TILE_HEIGHT / 2);
         func_8003A4EC(gfx, data + half * (TILE_WIDTH * (TILE_HEIGHT / 2) * 2), 0, G_IM_SIZ_16b, TILE_WIDTH,
                       TILE_HEIGHT / 2, 0, 0, TILE_WIDTH, TILE_HEIGHT / 2, 0, 2, 2, 0, 0, 0, 0);
-        corner(&v[0], x, top, 0, 0);
-        corner(&v[1], x + TILE_WIDTH, top, TILE_WIDTH, 0);
-        corner(&v[2], x + TILE_WIDTH, top + TILE_HEIGHT / 2, TILE_WIDTH, TILE_HEIGHT / 2);
-        corner(&v[3], x, top + TILE_HEIGHT / 2, 0, TILE_HEIGHT / 2);
-        *vertices += 4;
-        gSPVertex((*gfx)++, v, 4, 0);
-        gSP2Triangles((*gfx)++, 0, 1, 2, 0, 0, 2, 3, 0);
+        board_back_quad(gfx, x, y + half * (TILE_HEIGHT / 2), TILE_WIDTH, TILE_HEIGHT / 2, 0, 0);
     }
 }
 
 RECOMP_PATCH void func_8004ACEC(Gfx** game_gfx, s32 arg1, u8 arg2) {
-    s32 left, top, column0, row0, i, j;
+    s32 column0, row0, i, j;
     s16 saved;
-    Gfx* list;
     Gfx** gfx;
-    Vtx* vertices;
-    Mtx* scroll;
 
     if ((arg2 != 0) || !(D_800D6730 & 4)) {
         return;
@@ -329,42 +276,8 @@ RECOMP_PATCH void func_8004ACEC(Gfx** game_gfx, s32 arg1, u8 arg2) {
     func_8004A950();
     func_80061264(saved);
 
-    left = left_edge();
-    top = top_edge();
-    column0 = first_column() - LEFT_COLUMNS;
-    row0 = first_row() - TOP_ROWS;
-    if (tile_projection.m[0][0] == 0) {
-        guOrtho(&tile_projection, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, -1, 1, 1);
-    }
-
-    // @recomp In a list of the tiles' own.
-    list = tile_lists[tile_list_index];
-    vertices = tile_vertices[tile_list_index];
-    scroll = &tile_scroll[tile_list_index];
-    tile_list_index = (tile_list_index + 1) % LISTS;
-    gSPDisplayList((*game_gfx)++, list);
-    gfx = &list;
-    gEXEnable((*gfx)++);
-    // @recomp The tiles past 4:3's edges are drawn to the window's.
-    gEXPushScissor((*gfx)++);
-    gEXSetScissor((*gfx)++, G_SC_NON_INTERLACE, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, 0, 0, SCREEN_HEIGHT);
-
-    // @recomp Black behind them, for past the map's edges: the game never clears a board's frame (its tiles cover
-    // 4:3), so the window's sides would show what an earlier frame left there.
-    gDPPipeSync((*gfx)++);
-    gEXPushOtherMode((*gfx)++);
-    gEXPushFillColor((*gfx)++);
-    gDPSetCycleType((*gfx)++, G_CYC_FILL);
-    gDPSetRenderMode((*gfx)++, G_RM_NOOP, G_RM_NOOP2);
-    gDPSetFillColor((*gfx)++, (GPACK_RGBA5551(0, 0, 0, 1) << 16) | GPACK_RGBA5551(0, 0, 0, 1));
-    gEXSetRectAlign((*gfx)++, G_EX_ORIGIN_CENTER, G_EX_ORIGIN_CENTER, -SCREEN_WIDTH * 4, 0, SCREEN_WIDTH * 4,
-                    SCREEN_HEIGHT * 4);
-    gDPFillRectangle((*gfx)++, 0, 0, 0, 0);
-    gEXSetRectAlign((*gfx)++, G_EX_ORIGIN_NONE, G_EX_ORIGIN_NONE, 0, 0, 0, 0);
-    gDPPipeSync((*gfx)++);
-    gEXPopFillColor((*gfx)++);
-    gEXPopOtherMode((*gfx)++);
-
+    // @recomp In a list of the tiles' own, black behind them, to the window's edges.
+    gfx = board_back_begin(game_gfx);
     gSPDisplayList((*gfx)++, D_800C4F80);
     gfx_words(gfx, 0xFB000000, 0xFFFFFF00 | D_800C4F7C);
     if (D_800C4F7C < 0xFF) {
@@ -381,49 +294,17 @@ RECOMP_PATCH void func_8004ACEC(Gfx** game_gfx, s32 arg1, u8 arg2) {
         gfx_words(gfx, 0xE200001C, 0x00552048);
     }
 
-    // @recomp The tiles at their places on the map, in the 320x240 picture's projection, kept to its aspect so that
-    // the window's sides show more of the map, moved by the scroll: a matrix RT64 interpolates, unless the scroll
-    // jumped (a cut, not a pan).
-    gEXPushViewport((*gfx)++);
-    gSPViewport((*gfx)++, &tile_viewport);
-    gEXPushProjectionMatrix((*gfx)++);
-    gEXMatrixGroup((*gfx)++, G_EX_ID_IGNORE, G_EX_INTERPOLATE_SIMPLE, G_EX_PUSH, G_MTX_PROJECTION, G_EX_COMPONENT_SKIP,
-                   G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP,
-                   G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_ORDER_LINEAR, G_EX_EDIT_NONE, G_EX_ASPECT_ADJUST,
-                   G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP);
-    gSPMatrix((*gfx)++, &tile_projection, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
-    gEXPushGeometryMode((*gfx)++);
-    gSPClearGeometryMode((*gfx)++, G_ZBUFFER | G_CULL_BOTH | G_LIGHTING | G_FOG | G_TEXTURE_GEN | G_TEXTURE_GEN_LINEAR);
-    gSPSetGeometryMode((*gfx)++, G_SHADE | G_SHADING_SMOOTH);
-    gSPTexture((*gfx)++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-    guTranslate(scroll, -left, -top, 0);
-    if ((left - last_left <= TILE_WIDTH) && (last_left - left <= TILE_WIDTH) && (top - last_top <= TILE_HEIGHT) &&
-        (last_top - top <= TILE_HEIGHT)) {
-        gEXMatrixGroupSimple((*gfx)++, TILE_SCROLL_GROUP, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_COMPONENT_INTERPOLATE,
-                             G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP,
-                             G_EX_ORDER_LINEAR, G_EX_EDIT_NONE, G_EX_COMPONENT_SKIP, G_EX_COMPONENT_SKIP);
-    } else {
-        gEXMatrixGroupNoInterpolate((*gfx)++, G_EX_PUSH, G_MTX_MODELVIEW, G_EX_EDIT_NONE);
-    }
-    last_left = left;
-    last_top = top;
-    gSPMatrix((*gfx)++, scroll, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_PUSH);
-
+    // @recomp The tiles at their places on the map, moved by the scroll.
+    board_back_view(gfx, left_edge(), top_edge(), 1.0f, FALSE);
+    column0 = first_column() - LEFT_COLUMNS;
+    row0 = first_row() - TOP_ROWS;
     for (i = 0; i < ROWS; i++) {
         for (j = 0; j < COLUMNS; j++) {
             if (grid[j][i] != NULL) {
-                draw_tile(gfx, &vertices, grid[j][i]->data, (column0 + j) * TILE_WIDTH, (row0 + i) * TILE_HEIGHT);
+                draw_tile(gfx, grid[j][i]->data, (column0 + j) * TILE_WIDTH, (row0 + i) * TILE_HEIGHT);
             }
         }
     }
-
-    gSPPopMatrix((*gfx)++, G_MTX_MODELVIEW);
-    gEXPopMatrixGroup((*gfx)++, G_MTX_MODELVIEW);
-    gEXPopMatrixGroup((*gfx)++, G_MTX_PROJECTION);
-    gEXPopGeometryMode((*gfx)++);
-    gEXPopProjectionMatrix((*gfx)++);
-    gEXPopViewport((*gfx)++);
-    gEXPopScissor((*gfx)++);
-    gSPEndDisplayList((*gfx)++);
+    board_back_end(gfx);
     func_8004A530();
 }
