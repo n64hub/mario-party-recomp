@@ -16,6 +16,11 @@
 // libultra functions the runtime reimplements are called by their _recomp names (syms.ld).
 #define osRecvMesg osRecvMesg_recomp
 #define osEPiStartDma osEPiStartDma_recomp
+#define osSendMesg osSendMesg_recomp
+#define osJamMesg osJamMesg_recomp
+#define osCreateMesgQueue osCreateMesgQueue_recomp
+#define osCreateThread osCreateThread_recomp
+#define osStartThread osStartThread_recomp
 
 #include "common.h"
 
