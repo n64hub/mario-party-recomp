@@ -1,0 +1,3119 @@
+{
+ "page": "MarioPartyRecompiled.html",
+ "header": [
+  "The RT64 shaders the web page builds: one shader description a line, other mode L and H, color combiner L and H,",
+  "flags, in hex. RT64 specializes each one's WGSL when the page is built and builds them with the game waiting: those",
+  "above the first \"section\" line before the game starts, and a section when the game first draws with 4 of its shaders,",
+  "so that nothing draws with the ubershader, which integrated graphics can't afford (N64Recomp-browser's",
+  "docs/porting.md, Prebuilt shader lists).",
+  "",
+  "Recorded by code, not by playing: bash tools/record_shaders.sh (its header says how) runs N64Recomp-browser's",
+  "tools/record_shaders.mjs with tools/shader_plan.json, which loads the page fresh for each section. Section 0 is the",
+  "launcher, the logos, the opening and the title as they play by themselves and with Start (Enter), and Mushroom Village",
+  "on a new save. RulesBoard is A (Space) through Toad's messages and the warp pipe into the board Toad teaches the rules",
+  "on, then 90 s of A with four computer players on it. Then a section for each board, DKsJungleAdventure to EternalStar,",
+  "a minute of A on each; one for each minigame, MemoryMatch to BumperBallMaze3 (the decomp's names, Minigame2A for 0x2A,",
+  "a number after the name for Slot Car Derby's and Bumper Ball Maze's other courses), each opened as a board opens it,",
+  "by its instructions screen with the players on its sides, then Start, and played by the computer players to its end,",
+  "and Chance Time, a board's event, gone to directly; and one for each of the village's places, MinigameHouse to",
+  "OptionsHouse, 30 s of A in each, and MinigameIsland, its start screen (0x78) and its introduction, A until the island",
+  "(0x71) or 150 s, then 30 s more (on the survey's save it leaves for the rules' board, not the island, so the island's",
+  "own shaders aren't in it). The survey (patches/survey.c, tools/survey.js) sends the hub's trips to the rules' board to",
+  "each board, minigame's instructions or Chance Time, and the warp pipe to each place, as tools/shader_plan.json says."
+ ],
+ "load": [
+  [
+   "wait",
+   8000
+  ]
+ ],
+ "setup": [
+  [
+   "rom",
+   627,
+   364
+  ],
+  [
+   "wait",
+   3000
+  ]
+ ],
+ "start": [
+  [
+   "click",
+   627,
+   364
+  ],
+  [
+   "wait",
+   15000
+  ],
+  [
+   "evalFile",
+   "survey.js"
+  ],
+  [
+   "pressUntil",
+   "Enter",
+   "Enter",
+   13,
+   150,
+   2500,
+   "overlay() === 0x69",
+   90000
+  ],
+  [
+   "need",
+   "overlay() === 0x69"
+  ],
+  [
+   "wait",
+   3000
+  ]
+ ],
+ "sections": [
+  {
+   "name": "RulesBoard",
+   "steps": [
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x3E",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x3E"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "DKsJungleAdventure",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x36, -1, -1, true)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x36",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x36"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     60000
+    ]
+   ]
+  },
+  {
+   "name": "PeachsBirthdayCake",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x37, -1, -1, true)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x37",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x37"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     60000
+    ]
+   ]
+  },
+  {
+   "name": "YoshisTropicalIsland",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x38, -1, -1, true)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x38",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x38"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     60000
+    ]
+   ]
+  },
+  {
+   "name": "WariosBattleCanyon",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x39, -1, -1, true)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x39",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x39"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     60000
+    ]
+   ]
+  },
+  {
+   "name": "LuigisEngineRoom",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x3A, -1, -1, true)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x3A",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x3A"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     60000
+    ]
+   ]
+  },
+  {
+   "name": "MariosRainbowCastle",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x3B, -1, -1, true)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x3B",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x3B"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     60000
+    ]
+   ]
+  },
+  {
+   "name": "BowsersMagmaMountain",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x3C, -1, -1, true)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x3C",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x3C"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     60000
+    ]
+   ]
+  },
+  {
+   "name": "EternalStar",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x3D, -1, -1, true)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x3D",
+     120000
+    ],
+    [
+     "need",
+     "overlay() === 0x3D"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     60000
+    ]
+   ]
+  },
+  {
+   "name": "MemoryMatch",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x00, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x00",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x00"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x00",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "ChanceTime",
+   "steps": [
+    [
+     "eval",
+     "ask(0x3E, 0x01, 0, 0x92)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x01",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x01"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x01",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "SlotMachine",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x02, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x02",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x02"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x02",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BuriedTreasure",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x03, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x03",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x03"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x03",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "TreasureDivers",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x04, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x04",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x04"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x04",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "ShellGame",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x05, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x05",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x05"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x05",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "HotBobOmb",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x07, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x07",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x07"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x07",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "PipeMaze",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x09, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x09",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x09"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x09",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "GhostGuess",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x0A, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x0A",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x0A"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x0A",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "MusicalMushroom",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x0B, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x0B",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x0B"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x0B",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "PedalPower",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x0C, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x0C",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x0C"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x0C",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "CrazyCutter",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x0D, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x0D",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x0D"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x0D",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "FaceLift",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x0E, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x0E",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x0E"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x0E",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "WhackAPlant",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x0F, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x0F",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x0F"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x0F",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BashNCash",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x10, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x10",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x10"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x10",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BowlOver",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x11, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x11",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x11"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x11",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "GroundPound",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x12, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x12",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x12"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x12",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BalloonBurst",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x13, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x13",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x13"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x13",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "CoinBlockBlitz",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x14, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x14",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x14"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x14",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "CoinBlockBash",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x15, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x15",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x15"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x15",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "SkateBoardSkamper",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x16, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x16",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x16"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x16",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BoxMountainMayhem",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x17, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x17",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x17"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x17",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "PlatformPeril",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x18, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x18",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x18"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x18",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "TeeteringTowers",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x19, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x19",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x19"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x19",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "MushroomMixup",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x1A, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x1A",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x1A"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x1A",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "HammerDrop",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x37, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x1B",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x1B"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x1B",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "GrabBag",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x1C, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x1C",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x1C"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x1C",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BobsledRun",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x1D, 0, 0, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x1D",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x1D"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x1D",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BumperBalls",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x1E, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x1E",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x1E"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x1E",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "TightropeTreachery",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x1F, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x1F",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x1F"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x1F",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "KnockBlockTower",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x20, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x20",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x20"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x20",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "TipsyTourney",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x21, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x21",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x21"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x21",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BombsAway",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x22, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x22",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x22"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x22",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "CraneGame",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x23, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x23",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x23"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x23",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "FlowerShower",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x36, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x24",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x24"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x24",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "SlotCarDerby",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x25, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x25",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x25"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x25",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "SlotCarDerby2",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x06, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x25",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x25"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x25",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "SlotCarDerby3",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x08, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x25",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x25"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x25",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "MarioBandstand",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x26, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x26",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x26"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x26",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "DesertDash",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x27, 0, 0, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x27",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x27"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x27",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "ShyGuySays",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x28, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x28",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x28"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x28",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "LimboDance",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x29, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x29",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x29"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x29",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "Minigame2A",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x2A, 0, 0, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x2A",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x2A"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x2A",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "CastAways",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x2B, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x2B",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x2B"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x2B",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "KeyPaWay",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x2C, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x2C",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x2C"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x2C",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "RunningOfTheBulb",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x2D, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x2D",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x2D"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x2D",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "HotRopeJump",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x2E, 0, 1, 2, 3)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x2E",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x2E"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x2E",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "HandcarHavoc",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x2F, 0, 0, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x2F",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x2F"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x2F",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "DeepSeaDivers",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x31, 0, 0, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x30",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x30"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x30",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "PiranhasPursuit",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x32, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x31",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x31"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x31",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "TugOWar",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x33, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x32",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x32"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x32",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "PaddleBattle",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x34, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x33",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x33"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x33",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BumperBallMaze",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x1B, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x34",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x34"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x34",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BumperBallMaze2",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x24, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x34",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x34"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x34",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "BumperBallMaze3",
+   "steps": [
+    [
+     "eval",
+     "minigame(0x35, 0, 1, 1, 1)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6F",
+     90000
+    ],
+    [
+     "need",
+     "overlay() === 0x6F"
+    ],
+    [
+     "pressUntil",
+     "Enter",
+     "Enter",
+     13,
+     150,
+     1500,
+     "overlay() === 0x34",
+     30000
+    ],
+    [
+     "need",
+     "overlay() === 0x34"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() !== 0x34",
+     90000
+    ]
+   ]
+  },
+  {
+   "name": "MinigameHouse",
+   "steps": [
+    [
+     "eval",
+     "ask(0x6A, 0x6B, 0, 0x11)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6B",
+     60000
+    ],
+    [
+     "need",
+     "overlay() === 0x6B"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     30000
+    ]
+   ]
+  },
+  {
+   "name": "MushroomShop",
+   "steps": [
+    [
+     "eval",
+     "ask(0x6A, 0x6C, 0, 0x11)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6C",
+     60000
+    ],
+    [
+     "need",
+     "overlay() === 0x6C"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     30000
+    ]
+   ]
+  },
+  {
+   "name": "MushroomBank",
+   "steps": [
+    [
+     "eval",
+     "ask(0x6A, 0x6D, 0, 0x11)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6D",
+     60000
+    ],
+    [
+     "need",
+     "overlay() === 0x6D"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     30000
+    ]
+   ]
+  },
+  {
+   "name": "OptionsHouse",
+   "steps": [
+    [
+     "eval",
+     "ask(0x6A, 0x6E, 0, 0x11)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x6E",
+     60000
+    ],
+    [
+     "need",
+     "overlay() === 0x6E"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     30000
+    ]
+   ]
+  },
+  {
+   "name": "MinigameIsland",
+   "steps": [
+    [
+     "eval",
+     "ask(0x6A, 0x78, 0, 0x11)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x78",
+     60000
+    ],
+    [
+     "need",
+     "overlay() === 0x78"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "overlay() === 0x71",
+     150000
+    ],
+    [
+     "eval",
+     "overlay().toString(16)"
+    ],
+    [
+     "pressUntil",
+     "Space",
+     " ",
+     32,
+     150,
+     1500,
+     "false",
+     30000
+    ]
+   ]
+  }
+ ]
+}
