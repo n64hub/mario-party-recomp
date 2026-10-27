@@ -71,9 +71,11 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   `patches/background.c` a board's background, through lib/mario-party-engine's `camera_view.c` and `board_back.c`
   (their headers say how), and `us.toml`'s hooks in the sprite manager the board's HUD, the players' panels, to its
   left and right edges, through lib/mario-party-engine's `src/hud.cpp`, and its hooks in the wipe module draw a wipe's colour (an
-  iris's black, a fade) to them too, through its `src/wipe.cpp`. The board's camera stops where the wider picture
-  reaches the map's edge (`patches/background.c`, with the engine's `src/aspect_ratio.cpp`). A map narrower than the
-  picture (the First Map's opening shot, 5x5 tiles) keeps black at its sides: the game has nothing beside it to draw.
+  iris's black, a fade) to them too, through its `src/wipe.cpp`; on a minigame's instructions screen
+  `patches/instructions.c` carries its strips of cloud on past 4:3 with a copy of each on either side. The board's
+  camera stops where the wider picture reaches the map's edge (`patches/background.c`, with the engine's
+  `src/aspect_ratio.cpp`). A map narrower than the picture (the First Map's opening shot, 5x5 tiles) keeps black at
+  its sides: the game has nothing beside it to draw.
 - **The survey.** `patches/survey.c`, `src/game/survey.cpp` and `tools/survey.js` let a plan send the game to any
   overlay (a board, a minigame, a menu) the way the game goes there, for the shader list and the plays
   (`docs/web.md`). Overlay indices are the decomp's (`lib/marioparty/src/overlays`).
