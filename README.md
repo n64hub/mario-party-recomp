@@ -20,9 +20,6 @@ one at a time, on the desktop and in a browser alike ([docs/processes.md](docs/p
 Mario Party recomps share ([mario-party-engine](https://github.com/n64hub/mario-party-engine)). The game also plays
 in a browser, built from your ROM as a web page with a prebuilt shader list ([docs/web.md](docs/web.md)).
 
-**The web page plays at [n64hub.com/mario-party](https://n64hub.com/mario-party/)**, from your own ROM through its Load
-ROM.
-
 ## The ROM
 
 *Mario Party* (USA), as a big-endian `.z64` of 32 MiB with SHA-1 `1159bd56730094bfc71be30113e1cfc8bacf34f3`. Other
