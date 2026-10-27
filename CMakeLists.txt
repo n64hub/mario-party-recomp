@@ -76,6 +76,11 @@ n64recomp_browser_apply_patches(${CMAKE_SOURCE_DIR}/lib)
 # task interpolated as a frame of its own drew frames between the game's from the first tasks alone, without the HUD,
 # Toad or a text box, which flickered.
 set(RT64_GAME_FRAME_WORKLOADS ON)
+# A wipe draws its shape under an extended scissor reaching far past the frame's edges, which RT64 took as the frame's
+# width with it, and on that frame drew what covers the screen's width (the HUD, a board's title card, the star) stretched
+# to the window's, between frames at 4:3. RT64_SCISSOR_INSIDE_FRAMEBUFFER, on with Emscripten and here too, counts it
+# only to the frame's edges.
+set(RT64_SCISSOR_INSIDE_FRAMEBUFFER ON)
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/rt64 ${CMAKE_BINARY_DIR}/rt64)
 
 set(BUILD_SHARED_LIBS OFF)
