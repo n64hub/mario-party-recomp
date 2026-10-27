@@ -13,10 +13,12 @@ and menus): the game's own MIPS code translated to C and run natively, with RT64
 The repo holds no ROM, no asset from the game and no data extracted from it: you supply your own ROM, and nothing in
 git or CI is made from one except the symbol names and addresses in `syms/`.
 
-**Status:** the first boot. The game's process scheduler, which switches between dozens of small processes with its
-own setjmp and longjmp, runs each process on a thread of its own, one at a time, on the desktop and in a browser alike
-([docs/processes.md](docs/processes.md)). Polish (interpolation to the display's rate, widescreen) is still to come.
-The game also plays in a browser, built from your ROM as a web page ([docs/web.md](docs/web.md)).
+**Status:** plays its boards and minigames in widescreen (RT64's Aspect Ratio Expand, with each board's view taken to
+the window's edges), the boards interpolated to the display's rate; the minigames show the game's own 30 frames a
+second. The game's process scheduler, which switches between
+dozens of small processes with its own setjmp and longjmp, runs each process on a thread of its own, one at a time,
+on the desktop and in a browser alike ([docs/processes.md](docs/processes.md)). The game also plays in a browser,
+built from your ROM as a web page with a prebuilt shader list ([docs/web.md](docs/web.md)).
 
 ## The ROM
 
@@ -45,6 +47,13 @@ ninja -C build MarioPartyRecompiled
 
 The symbols in `syms/` are made from the decomp's own build of the game (`tools/build_decomp.sh`, which needs the ROM
 and Docker, then `tools/gen_syms.sh`). They only change when `lib/marioparty` moves.
+
+## Controls
+
+A gamepad, or the keyboard: WASD the stick, Space A, Left Shift B, Q Z, R R, E L, Enter Start, the arrows the C
+buttons. The minigames that spin the stick take WASD pressed round in turn (W, A, S, D, about ten keys a second):
+that turned Pedal Power's pedal about 2.2 times a second, near the 70 turns in 30 seconds it asks for. A gamepad's
+stick is easier.
 
 ## License
 

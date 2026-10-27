@@ -9,6 +9,12 @@ N64Recomp reads each section's VRAM from the ELF's section headers and its ROM o
 marioparty.ld gives it, which is the ROM's: the decomp builds the ROM uncompressed, byte for byte. Each code section's
 bytes are checked against the ROM's there.
 
+A function that starts with a nop (the compiler's, before a mult or div that would follow too closely on the caller's
+mflo or mfhi) has that nop sized into the function before it, as padding, and is named and placed one word later. Crazy
+Cutter calls one that way, through a pointer to its nop, which the runtime then finds no function at. So where a
+section's code takes the address of such a nop (a jal to it, or a lui and an addiu making it), the function starts
+there.
+
 Usage: py -3 -I tools/gen_syms.py <N64Recomp> <elf> <rom>
 """
 import re
@@ -43,6 +49,44 @@ def check_rom_offsets(dump, sections, rom):
             sys.exit(f"{name}: the ROM's bytes at {offset} aren't the ELF's")
 
 
+def entry_nops(dump, sections):
+    """The dump with each function that starts with a nop (above) starting at that nop."""
+    moved = []
+
+    def section(match):
+        block = match.group(0)
+        name, vram = match.group(1), int(match.group(2), 16)
+        code = sections[name]
+        word = lambda a: struct.unpack_from(">I", code, a - vram)[0]
+        funcs = {int(v, 16): int(n, 16) for v, n in re.findall(r"vram = (0x[0-9A-F]+), size = (0x[0-9A-F]+)", block)}
+        # The addresses its code calls or makes: jal targets, and lui then addiu from the lui's register.
+        made = set()
+        for start, size in funcs.items():
+            his = {}
+            for a in range(start, start + size, 4):
+                x = word(a)
+                op, rs, rt, imm = x >> 26, (x >> 21) & 31, (x >> 16) & 31, x & 0xFFFF
+                if op == 3:
+                    made.add((a & 0xF0000000) | (x & 0x3FFFFFF) << 2)
+                elif op == 15:
+                    his[rt] = imm << 16
+                elif op == 9 and rs in his:
+                    made.add((his[rs] + imm - (imm & 0x8000) * 2) & 0xFFFFFFFF)
+        for start, size in sorted(funcs.items()):
+            before = next((s for s, n in funcs.items() if s + n == start), None)
+            if before is not None and start - 4 in made and start - 4 not in funcs and word(start - 4) == 0:
+                block = block.replace(f"vram = 0x{before:08X}, size = 0x{funcs[before]:X} ",
+                                      f"vram = 0x{before:08X}, size = 0x{funcs[before] - 4:X} ")
+                block = block.replace(f"vram = 0x{start:08X}, size = 0x{size:X} ",
+                                      f"vram = 0x{start - 4:08X}, size = 0x{size + 4:X} ")
+                moved.append(f"{name} 0x{start:08X}")
+        return block
+
+    dump = re.sub(r'\[\[section\]\]\nname = "([^"]+)"\nrom = 0x[0-9A-F]+\nvram = (0x[0-9A-F]+)\n(?:(?!\[\[section).*\n?)*',
+                  section, dump)
+    return dump, moved
+
+
 def main():
     if len(sys.argv) != 4:
         sys.exit(__doc__.strip().splitlines()[-1])
@@ -61,6 +105,8 @@ def main():
             sys.exit((run.stdout + run.stderr)[-3000:])
         dump = (Path(tmp) / "dump.toml").read_text()
         check_rom_offsets(dump, elf_sections(elf), rom.read_bytes())
+        dump, moved = entry_nops(dump, elf_sections(elf))
+        print("started at their nop: " + (", ".join(moved) or "none"))
         out = ROOT / "syms"
         out.mkdir(exist_ok=True)
         (out / "marioparty.us.syms.toml").write_text(dump, newline="\n")

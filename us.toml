@@ -22,3 +22,9 @@ stubs = [
 renamed = [
     "PlaySound",
 ]
+
+# The survey (patches/survey.c): the overlay a script asked for, in place of the one the game goes to.
+[[patches.hook]]
+func = "omOvlGotoEx"
+before_vram = 0x8005E044
+text = "{ void mp_survey_goto(uint8_t*, gpr*, gpr*, gpr*); mp_survey_goto(rdram, &ctx->r4, &ctx->r5, &ctx->r6); }"

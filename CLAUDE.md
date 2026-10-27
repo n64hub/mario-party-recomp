@@ -60,5 +60,14 @@ This repo is the game: its recompilation, the patches over it, the desktop build
 - **Microcodes.** Graphics go to RT64. Audio: aspMain, recompiled by RSPRecomp from `aspMain.us.toml` (its header
   says how its layout was found; it is Bomberman 64's microcode, byte for byte).
 - **Saves.** EEPROM, 4 Kbit. `main.cpp` declares `SaveType::Eep4k`; the runtime keeps it in `saves/`.
+- **Drawing.** RT64 interpolates the game's 30 frames a second to the display's rate on the boards with no tags in
+  the game's display lists (a board's camera pans by an even step at every present), and draws a picture wider than
+  4:3 with Aspect Ratio Expand; `patches/widescreen.c` takes a camera's view to the window's edges (its header says
+  which). Mushroom Village, the title, the minigames' instructions and the minigames show the game's own 30: the game
+  draws a frame in several RSP tasks, one a camera (`func_8002D614`), some of them empty, and RT64 takes each task as
+  a frame of its own, so it has no frame before to interpolate from. That is RT64's to change, not the game's.
+- **The survey.** `patches/survey.c`, `src/game/survey.cpp` and `tools/survey.js` let a plan send the game to any
+  overlay (a board, a minigame, a menu) the way the game goes there, for the shader list and the plays
+  (`docs/web.md`). Overlay indices are the decomp's (`lib/marioparty/src/overlays`).
 - **Input.** RecompFrontend's default bindings. Keyboard: WASD the stick, Space A, Left Shift B, Q Z, R R, E L,
   Enter Start, the arrows the C buttons.
