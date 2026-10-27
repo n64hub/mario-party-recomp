@@ -1,68 +1,23 @@
 # The process scheduler
 
-Hudson's engine, which Mario Party, Mario Party 2 and 3 and Bomberman 64 are built on, runs most of a game as
-processes: small functions, each with a stack of its own in the engine's heap, which a scheduler runs in turn once a
-frame. A process runs until it sleeps (`HuPrcSleep`), waits for its children (`HuPrcChildWatch`) or ends
-(`HuPrcEnd`), and the scheduler (`HuPrcCall`, called from the game's main thread) then goes on to the next. On a
-console they switch with the game's own setjmp and longjmp: `HuPrcCall` longjmps into a process, onto its stack, and
-the process setjmps where it stops and longjmps back.
+Hudson's engine runs most of a game as processes, small functions with stacks of their own that a scheduler runs in
+turn once a frame and that switch with the game's own setjmp and longjmp, which recompiled code can't do. Here each
+live process runs on a native thread of its own, one at a time, from the code the Mario Party recomps share:
+`lib/mario-party-engine` ([its docs/processes.md](https://github.com/n64hub/mario-party-engine/blob/main/docs/processes.md)
+says how it works and why). This file says what is Mario Party's.
 
-Recompiled code can't do that. A function of the game is a C function, so a process's state is on the native stack as
-well as in RDRAM, and a longjmp between two of them would leave the native stack behind.
+## What is Mario Party's
 
-## How it runs here
-
-Each live process runs on a native thread of its own, and exactly one of them runs at a time, as the console runs one
-process at a time:
-
-- `HuPrcCall` is the game's loop, line for line, with `recomp_prc_resume` where it longjmped into a process. The first
-  resume of a process starts a thread at its function with its RDRAM stack and the saved registers its jmp_buf holds
-  (s0-s7, fp and f20-f31), as the longjmp loaded them; a later one wakes its thread. Either way the scheduler waits
-  until the process hands the baton back, then goes on with what the longjmp back would have returned: 1 when the
-  process slept, 2 when it ended.
-- `HuPrcSleep` and `HuPrcChildWatch` hand the baton back (`recomp_prc_yield`) and wait to be resumed, where they
-  setjmped and longjmped.
-- `HuPrcTerminate` ends the process (`recomp_prc_exit`), which throws out of the recompiled code to its thread's loop,
-  as N64ModernRuntime ends a game thread. The scheduler frees the process's heap, on its own stack, as on a console.
-- `HuPrcInit` ends every process's thread (`recomp_prc_reset`), since none outlives the list it was on.
-- A process killed while it waits (`HuPrcKill`) is resumed in `HuPrcEnd` on a console, and here too: a process that
-  wakes checks for it, and one that never ran starts there.
-
-The engine never setjmps a new process's jmp_buf, so its registers are whatever the process's heap held, and the game
-reads some of them before it sets them: the warp pipe's room, where Toad sends the players off on an adventure, reads
-s3 in its first message's wait, and with 0 there it closes and reopens Toad's window over and over. Started with the
-jmp_buf's registers, it waits for A as on a console.
-
-The thread a process runs on takes the identity of the game thread that resumed it (N64ModernRuntime's
-`thread_self` and the FPU's rounding mode), so what a process does, a blocking `osRecvMesg` included, is that game
-thread's doing, as on a console. A process's thread is kept when the process ends and handed the next new one, so a
-board's processes cost no thread creation after the first time.
-
-It is the same code on the desktop and on the web, where the page builds with threads and `-fwasm-exceptions` anyway.
-Bomberman 64's and Mario Party 3's recompilations make each process a coroutine instead (minicoro), which in a browser
-needs Asyncify over the whole recompiled game: a bigger, slower page.
-
-The code is `patches/process.c` (the five patches) and `src/game/process_threads.cpp` (the natives, with a header
-that says how they hand the baton over).
-
-## What a second game reuses
-
-A game on the same engine takes both files:
-
-- `src/game/process_threads.cpp` as it is. Nothing in it is Mario Party's: its natives take a process's key (its
-  address) and its jmp_buf, in the engine's setjmp's layout (sp, the function, s0-s7, fp and f20-f31, a word each),
-  and the engine's `HuPrcEnd` for a process whose function returns.
-- `patches/process.c`, with the game's own names: the five functions it patches are the engine's, and each patch is
-  the game's function with its setjmp and longjmp swapped for a native. A game whose decomp has these functions under
-  other names, or whose `Process` names its fields differently, changes only those names.
-- The five natives' lines in `patches/syms.ld`.
-
-Then build the game with `MP_PROCESS_STATS` (below) and look at what it prints: a board here keeps up to the number in
-How much it costs alive.
-
-Not the scheduler's, but the same engine's: its swap chain (`src/engine/graphics.c`) draws each frame in several RSP
-tasks, the ground first and the text last, so the game presents at the VI (`src/main/main.cpp`). RT64's early present
-shows a framebuffer as soon as any task that draws into it ends, and the screen flickers between parts of a frame.
+- `patches/engine_names.h` gives the engine's patches the decomp's names (`src/engine/process.c`): `HuPrcInit`,
+  `HuPrcChildWatch` and `HuPrcEnd`, `HuUnlinkPrc`, the list's `processtop`, `processcur` and `processcnt`, and
+  `HuMemDirectFree` for the heap a process leaves.
+- The natives' lines are in `patches/syms.ld`, and the survey's `survey_tick` in `patches/survey.c`.
+- The game calls setjmp and longjmp nowhere else, and `src/game/libultra.cpp`'s setjmp aborts.
+- The warp pipe's room, where Toad sends the players off on an adventure, reads s3 in its first message's wait before
+  it sets it: a new process starts with the registers its jmp_buf holds, as on a console, and with 0 there it closes
+  and reopens Toad's window over and over.
+- Its swap chain (`src/engine/graphics.c`) draws each frame in several RSP tasks, so the game presents at the VI
+  (`src/main/main.cpp`).
 
 ## How much it costs
 
