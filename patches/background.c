@@ -11,7 +11,11 @@
 // (the game's 40 and 72 more here), through queues as long, and draws them through lib/mario-party-engine's
 // board_back.c: as quads at their places on the map, in a list of their own with black behind them, kept to the
 // picture's aspect and moved by an interpolated scroll, so the window's sides show more of the map, and the board pans
-// with its 3D spaces. Everything else is the game's as it was.
+// with its 3D spaces. A tile past the game's 6x6 is sent to be read only while fewer than EXTRA_IN_FLIGHT are on their
+// way, since each holds its compressed bytes on the game's 128 KB temporary heap (MallocTemp) until it is decompressed,
+// and the game sized that heap for its 36: a board's start sends every tile in the picture at once, and on DK's Jungle
+// Adventure, whose tiles are the largest, 88 of them filled the heap, MallocTemp gave the next one NULL, and the
+// thread that reads it wrote it to address 0. Everything else is the game's as it was.
 
 #include "patches.h"
 #include "PR/os.h"
@@ -30,6 +34,7 @@
 #define GAME_SLOTS 40
 #define SLOTS 112
 #define SLOT_BYTES 0x1800
+#define EXTRA_IN_FLIGHT 12
 
 // src/48D90.c's own.
 typedef struct {
@@ -167,8 +172,11 @@ RECOMP_PATCH void func_8004A73C(void) {
     }
 }
 
-RECOMP_PATCH unk20* func_8004A890(u16 arg0) {
+// func_8004A890: the slot holding a tile, or a free one it is sent to be read into, or NULL if there is none or it
+// isn't the game's own and too many are on their way.
+static unk20* tile_slot(u16 arg0, s32 games) {
     unk20* free_slot = NULL;
+    s32 in_flight = 0;
     s32 i;
 
     for (i = 0; i < SLOTS; i++) {
@@ -179,9 +187,11 @@ RECOMP_PATCH unk20* func_8004A890(u16 arg0) {
             s->unk0 = 1;
             return s;
         }
+        in_flight += (s->archive != NULL);
     }
 
-    if (free_slot != NULL) {
+    // @recomp One past the game's 6x6 waits while too many are on their way.
+    if ((free_slot != NULL) && (games || (in_flight < EXTRA_IN_FLIGHT))) {
         u32 size;
         free_slot->unk0 = 1;
         free_slot->unk2 = arg0;
@@ -190,8 +200,13 @@ RECOMP_PATCH unk20* func_8004A890(u16 arg0) {
         free_slot->dirTblSize = size;
         free_slot->archive = MallocTemp(size);
         osSendMesg(&D_800D6AF0, free_slot, 0);
+        return free_slot;
     }
-    return free_slot;
+    return NULL;
+}
+
+RECOMP_PATCH unk20* func_8004A890(u16 arg0) {
+    return tile_slot(arg0, TRUE);
 }
 
 // Where the picture's left edge is on the map, and the game's first column of tiles there.
@@ -227,10 +242,12 @@ RECOMP_PATCH void func_8004A950(void) {
         for (j = LEFT_COLUMNS; j < COLUMNS + LEFT_COLUMNS; j++) {
             s32 k = j % COLUMNS;
             s32 column = column0 + k;
+            s32 games = (k >= LEFT_COLUMNS) && (k < LEFT_COLUMNS + GAME_COLUMNS) && (i >= TOP_ROWS) &&
+                        (i < TOP_ROWS + GAME_ROWS);
             if ((column < 0) || (row < 0) || (column >= D_800C4F78->unk8) || (row >= D_800C4F78->unkC)) {
                 grid[k][i] = NULL;
             } else {
-                grid[k][i] = func_8004A890(func_8004A814(column, row));
+                grid[k][i] = tile_slot(func_8004A814(column, row), games);
             }
         }
     }
