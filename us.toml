@@ -75,3 +75,21 @@ text = "{ void mp_hud_sprite_start(uint8_t*, gpr, gpr); mp_hud_sprite_start(rdra
 func = "func_80068410"
 before_vram = 0x80069358
 text = "{ void mp_hud_sprite_end(uint8_t*, gpr); mp_hud_sprite_end(rdram, ctx->r21); }"
+
+# A screen wipe past 4:3 (lib/mario-party-engine/src/wipe.cpp says how): the wipe module's whole-screen rectangle
+# (func_800728F4(gfx, alpha), out through 0x800729C0), and a shape wipe's rectangles around its square
+# (func_8007420C, with gfx in t0, from 0x80074A9C, where it has set their colour).
+[[patches.hook]]
+func = "func_800728F4"
+before_vram = 0x800728F4
+text = "{ void mp_wipe_fill_start(uint8_t*, gpr); mp_wipe_fill_start(rdram, ctx->r4); }"
+
+[[patches.hook]]
+func = "func_800728F4"
+before_vram = 0x800729C0
+text = "{ void mp_wipe_fill_end(uint8_t*, gpr); mp_wipe_fill_end(rdram, ctx->r4); }"
+
+[[patches.hook]]
+func = "func_8007420C"
+before_vram = 0x80074A9C
+text = "{ void mp_wipe_sides(uint8_t*, gpr); mp_wipe_sides(rdram, ctx->r8); }"
