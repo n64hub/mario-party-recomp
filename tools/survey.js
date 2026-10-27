@@ -9,7 +9,13 @@
 // false after ms; frames(), the scheduler's frame count (one a frame the game makes: its own rate); mark() and rate(),
 // how many frames a second the game made from the one to the other; human(player), that player (0-3) played from the
 // keyboard and pad 1 rather than by the computer (the CPU bit of the player's flags in GwPlayer, 0x800F32B0, 0x30 bytes
-// a player), which a board's start sets back from the save.
+// a player), which a board's start sets back from the save; teams(...groups), each player's group (GwPlayer's first
+// byte: a minigame's sides, set as a board starts one); and minigame(id, ...groups), which opens a minigame as a board
+// does, by its instructions screen (0x6F), which A (Space) pages through and Start (Enter) leaves for the minigame: it
+// asks for 0x6F in place of the hub's trip to the rules' board, and while the game is on the overlay before it (0x35)
+// sets the minigame's ID (GwSystem's at 0x800ED5DE, which ovl_6F's table turns into an overlay and a kind) and the
+// groups the kind needs: 1P and 1 vs 3 the player alone 0 and the others 1, 2 vs 2 0 0 1 1, 4P 0 1 2 3. A minigame the
+// survey sends the game to directly, past that screen, can trap (Bobsled Run's did, with its groups set or not).
 (() => {
   const magic = (a) => n64r(a) === 0x4d505254 && n64r(a + 4) === 0x53525659;
   if (!window.__survey) {
@@ -47,6 +53,22 @@
   window.rate = () => {
     const [frames, ms] = [window.frames() - window.__mark[0], performance.now() - window.__mark[1]];
     return `${frames} game frames in ${(ms / 1000).toFixed(1)} s: ${(frames * 1000 / ms).toFixed(1)} a second`;
+  };
+  window.teams = (...groups) => {
+    groups.forEach((group, player) => {
+      const a = 0x800f32b0 + player * 0x30;
+      n64w(a, ((n64r(a) & 0x00ffffff) | group << 24) >>> 0);
+    });
+    return 'groups ' + [0, 1, 2, 3].map((player) => n64r(0x800f32b0 + player * 0x30) >>> 24).join(' ');
+  };
+  window.minigame = (id, ...groups) => {
+    clearInterval(window.__minigame);
+    window.__minigame = setInterval(() => {
+      if (window.overlay() !== 0x35) return;
+      window.teams(...groups);
+      n64w(0x800ed5dc, ((n64r(0x800ed5dc) & 0xffff0000) | id) >>> 0);
+    }, 5);
+    return window.ask(0x3e, 0x6f, 0, 0x94) + `, minigame ${id.toString(16)} for groups ${groups.join(' ')}`;
   };
   window.human = (player) => {
     const a = 0x800f32b4 + player * 0x30;
