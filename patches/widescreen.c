@@ -7,6 +7,10 @@
 // or that border is drawn to the window's edges (gEXSetScissor, from the left and right): from top to bottom for the
 // border, and between the game's own top and bottom while it animates them, as a board's wipe between turns closes it
 // to a band across the middle. A screen split between players (a minigame's halves and quarters) keeps the game's.
+//
+// RT64 reads extended commands only after a gEXEnable in the same display list (it forgets it at each list's start),
+// and reads one before as the microcode's own command: gEXSetScissor did nothing, and the scissor the text drawn before
+// it left (us.toml, pfDrawFonts) stayed set for the board.
 
 #include "patches.h"
 #include "rt64_extended_gbi.h"
@@ -29,6 +33,7 @@ RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
             y0 = 0;
             y1 = SCREEN_HEIGHT;
         }
+        gEXEnable((*gfx)++);
         gEXSetScissor((*gfx)++, G_SC_NON_INTERLACE, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, y0, 0, y1);
         return;
     }
