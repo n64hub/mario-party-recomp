@@ -113,6 +113,7 @@ target_include_directories(RecompiledFuncs PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/ultramodern/include
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/librecomp/include
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
+    ${CMAKE_SOURCE_DIR}/lib/rt64/include
 )
 
 file(GLOB FUNC_C_SOURCES ${CMAKE_SOURCE_DIR}/RecompiledFuncs/*.c)
@@ -192,6 +193,7 @@ target_sources(MarioPartyRecompiled PRIVATE
     ${CMAKE_SOURCE_DIR}/src/game/config.cpp
     ${CMAKE_SOURCE_DIR}/src/game/libultra.cpp
     ${CMAKE_SOURCE_DIR}/lib/mario-party-engine/src/process_threads.cpp
+    ${CMAKE_SOURCE_DIR}/lib/mario-party-engine/src/hud.cpp
     ${CMAKE_SOURCE_DIR}/src/game/recomp_api.cpp
     ${CMAKE_SOURCE_DIR}/src/game/survey.cpp
 )
@@ -206,6 +208,7 @@ endif()
 target_include_directories(MarioPartyRecompiled PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/N64Recomp/include
+    ${CMAKE_SOURCE_DIR}/lib/rt64/include
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/thirdparty
     ${CMAKE_SOURCE_DIR}/lib/N64ModernRuntime/thirdparty/sse2neon
     ${CMAKE_SOURCE_DIR}/lib/rt64/src/contrib

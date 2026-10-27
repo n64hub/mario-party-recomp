@@ -69,7 +69,8 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   RT64_GAME_FRAME_WORKLOADS, on with Emscripten and in `CMakeLists.txt` on the desktop too. It draws a picture wider
   than 4:3 with Aspect Ratio Expand: `patches/widescreen.c` takes a camera's view to the window's edges and
   `patches/background.c` a board's background, through lib/mario-party-engine's `camera_view.c` and `board_back.c`
-  (their headers say how). A map no wider than 320 (the First Map's opening shot, 5x5 tiles) keeps black at its
+  (their headers say how), and `us.toml`'s hooks in the sprite manager the board's HUD, the players' panels, to its
+  left and right edges, through lib/mario-party-engine's `src/hud.cpp`. A map no wider than 320 (the First Map's opening shot, 5x5 tiles) keeps black at its
   sides: the game has nothing beside it to draw.
 - **The survey.** `patches/survey.c`, `src/game/survey.cpp` and `tools/survey.js` let a plan send the game to any
   overlay (a board, a minigame, a menu) the way the game goes there, for the shader list and the plays
