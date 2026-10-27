@@ -304,7 +304,7 @@ RECOMP_PATCH void func_8004ACEC(Gfx** game_gfx, s32 arg1, u8 arg2) {
     }
 
     // @recomp The tiles at their places on the map, moved by the scroll.
-    board_back_view(gfx, left_edge(), top_edge(), 1.0f, FALSE);
+    board_back_view(gfx, left_edge(), top_edge(), 1.0f, FALSE, D_800C4F78->unk8 * TILE_WIDTH);
     column0 = first_column() - LEFT_COLUMNS;
     row0 = first_row() - TOP_ROWS;
     for (i = 0; i < ROWS; i++) {
