@@ -1,37 +1,36 @@
 // What a picture wider than 4:3 needs besides RT64's Aspect Ratio Expand, which widens the 3D: a camera's view drawn to
-// the window's edges.
-//
-// Each camera has a scissor (src/1DE40.c's func_8001D7DC sets it before the camera's view is drawn), and RT64 keeps a
-// scissor that stops short of 4:3's edges as far in from the window's, so a board, whose camera keeps the console's
-// overscan border (16, 12, 304, 228), drew in a box with black at its sides. A camera whose scissor is the whole screen
-// or that border is drawn to the window's edges (gEXSetScissor, from the left and right): from top to bottom for the
-// border, and between the game's own top and bottom while it animates them, as a board's wipe between turns closes it
-// to a band across the middle. A screen split between players (a minigame's halves and quarters) keeps the game's.
+// the window's edges, its 3D moving with the board under it. The engine's patches/camera_view.c says how; here are
+// Mario Party's two functions that start a camera's view, src/1DE40.c's func_8001D658 (its viewport and projection)
+// and func_8001D7DC (its scissor). A board pans its 3D by moving its camera's viewport (src/48D90.c's func_8004B208).
 
 #include "patches.h"
-#include "rt64_extended_gbi.h"
+#include "../lib/mario-party-engine/patches/camera_view.h"
 
-#define BORDER_LEFT 16
-#define BORDER_TOP 12
-#define BORDER_RIGHT 304
-#define BORDER_BOTTOM 228
+static s32 widened(unk_Struct00* camera) {
+    return camera_view_widened(camera->unkD8.x, camera->unkD8.z);
+}
+
+RECOMP_PATCH void func_8001D658(s16 index, Gfx** gfx) {
+    unk_Struct00* camera = &D_800C3110[index];
+    Mtx* projection = &camera->unkF8 + (D_800F3FA8 * 2);
+    unk_Struct00* frame = (void*)camera + (D_800F3FA8 * 16);
+    Vp* viewport = (Vp*)(&camera->unk58 + (D_800F3FA8 * 8));
+
+    frame->unk58 = camera->unk24.x;
+    frame->unk5A = camera->unk24.y;
+    frame->unk5C = camera->unk24.z;
+    frame->unk60 = camera->unk30.x;
+    frame->unk62 = camera->unk30.y;
+    frame->unk64 = camera->unk30.z;
+
+    // @recomp A widened camera's viewport in the middle, what it was moved by in its projection.
+    camera_view_projection(gfx, index, viewport, camera->unk4C, projection, widened(camera));
+    gSPMatrix((*gfx)++, (void*)projection + 0x80000040, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+}
 
 RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
     unk_Struct00* camera = &D_800C3110[index];
-    s32 x0 = camera->unkD8.x;
-    s32 y0 = camera->unkD8.y;
-    s32 x1 = camera->unkD8.z;
-    s32 y1 = camera->unkD8.w;
 
     // @recomp The whole screen, or the border, to the window's edges.
-    if (((x0 == 0) && (x1 == SCREEN_WIDTH)) || ((x0 == BORDER_LEFT) && (x1 == BORDER_RIGHT))) {
-        if ((y0 == BORDER_TOP) && (y1 == BORDER_BOTTOM)) {
-            y0 = 0;
-            y1 = SCREEN_HEIGHT;
-        }
-        gEXSetScissor((*gfx)++, G_SC_NON_INTERLACE, G_EX_ORIGIN_LEFT, G_EX_ORIGIN_RIGHT, 0, y0, 0, y1);
-        return;
-    }
-
-    gDPSetScissor((*gfx)++, G_SC_NON_INTERLACE, x0, y0, x1, y1);
+    camera_view_scissor(gfx, camera->unkD8.x, camera->unkD8.y, camera->unkD8.z, camera->unkD8.w);
 }
