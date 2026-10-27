@@ -93,3 +93,15 @@ text = "{ void mp_wipe_fill_end(uint8_t*, gpr); mp_wipe_fill_end(rdram, ctx->r4)
 func = "func_8007420C"
 before_vram = 0x80074A9C
 text = "{ void mp_wipe_sides(uint8_t*, gpr); mp_wipe_sides(rdram, ctx->r8); }"
+
+# A minigame's instructions screen past 4:3 (patches/instructions.c says how): after its setup has placed and scaled
+# each of the two strips of cloud along the bottom (form 0xB000A, then 0xB000B, each in s0), a copy of it on each side.
+[[patches.hook]]
+func = "func_800F6B14_MinigameInstructions"
+before_vram = 0x800F6DFC
+text = "{ void instructions_clouds_beside(uint8_t*, recomp_context*); ctx->r4 = ctx->r16; ctx->r5 = 0xB000A; instructions_clouds_beside(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_800F6B14_MinigameInstructions"
+before_vram = 0x800F6E84
+text = "{ void instructions_clouds_beside(uint8_t*, recomp_context*); ctx->r4 = ctx->r16; ctx->r5 = 0xB000B; instructions_clouds_beside(rdram, ctx); }"
