@@ -11,11 +11,13 @@
 // (the game's 40 and 72 more here), through queues as long, and draws them through lib/mario-party-engine's
 // board_back.c: as quads at their places on the map, in a list of their own with black behind them, kept to the
 // picture's aspect and moved by an interpolated scroll, so the window's sides show more of the map, and the board pans
-// with its 3D spaces. A tile past the game's 6x6 is sent to be read only while fewer than EXTRA_IN_FLIGHT are on their
-// way, since each holds its compressed bytes on the game's 128 KB temporary heap (MallocTemp) until it is decompressed,
-// and the game sized that heap for its 36: a board's start sends every tile in the picture at once, and on DK's Jungle
-// Adventure, whose tiles are the largest, 88 of them filled the heap, MallocTemp gave the next one NULL, and the
-// thread that reads it wrote it to address 0.
+// with its 3D spaces. A tile holds its compressed bytes until it is decompressed, on the game's 128 KB temporary heap
+// (MallocTemp), which the game sized for its 36: a board's start sends every tile in the picture at once, and on DK's
+// Jungle Adventure, whose tiles are the largest, 88 of them filled the heap, MallocTemp gave the next one NULL, and the
+// thread that reads it wrote it to address 0. So one in a slot past the game's holds them in board_back_archive's
+// buffer for the slot, and the game's func_8004A56C, which frees them once a tile is decompressed, leaves those. A tile
+// past the game's 6x6 that still takes the heap (in one of the game's slots) is sent only while fewer than
+// EXTRA_IN_FLIGHT are on their way there.
 //
 // The game keeps its board camera where a 320x240 picture stays on the map (func_8004A1B0, which every board's camera
 // goes through), so at the map's edge the wider picture ran past it, where there are no tiles, and a black strip
@@ -101,6 +103,8 @@ static unk20* grid[COLUMNS][ROWS];
 static OSMesg read_messages[SLOTS];
 static OSMesg decompress_messages[SLOTS];
 static OSMesg done_messages[SLOTS];
+_Static_assert(SLOTS - GAME_SLOTS <= BOARD_BACK_ARCHIVES, "a buffer for each slot past the game's");
+
 static unk20* slot(s32 i) {
     return (i < GAME_SLOTS) ? &D_800D6740[i] : &extra_slots[i - GAME_SLOTS];
 }
@@ -131,7 +135,9 @@ RECOMP_PATCH void func_8004A5BC(void) {
     for (i = 0; i < SLOTS; i++) {
         unk20* s = slot(i);
         if (s->archive != NULL) {
-            FreeTemp(s->archive);
+            if (!board_back_own_archive(s->archive)) {
+                FreeTemp(s->archive);
+            }
             s->archive = NULL;
         }
     }
@@ -179,33 +185,58 @@ RECOMP_PATCH void func_8004A73C(void) {
     }
 }
 
+// func_8004A56C: the decompressed tiles' compressed bytes freed.
+RECOMP_PATCH void func_8004A56C(void) {
+    unk20* s;
+
+    while (osRecvMesg(&D_800D7FD8, (OSMesg*)&s, 0) == 0) {
+        if (s != NULL) {
+            // @recomp Not board_back_archive's.
+            if (!board_back_own_archive(s->archive)) {
+                FreeTemp(s->archive);
+            }
+            s->archive = NULL;
+        }
+    }
+}
+
 // func_8004A890: the slot holding a tile, or a free one it is sent to be read into, or NULL if there is none or it
-// isn't the game's own and too many are on their way.
+// isn't the game's own and too many are on their way on the heap.
 static unk20* tile_slot(u16 arg0, s32 games) {
     unk20* free_slot = NULL;
+    void* archive = NULL;
+    s32 free_index = 0;
     s32 in_flight = 0;
+    u32 size;
     s32 i;
 
     for (i = 0; i < SLOTS; i++) {
         unk20* s = slot(i);
         if (s->unk2 == -1) {
             free_slot = s;
+            free_index = i;
         } else if (s->unk2 == arg0) {
             s->unk0 = 1;
             return s;
         }
-        in_flight += (s->archive != NULL);
+        in_flight += (s->archive != NULL) && !board_back_own_archive(s->archive);
     }
 
-    // @recomp One past the game's 6x6 waits while too many are on their way.
-    if ((free_slot != NULL) && (games || (in_flight < EXTRA_IN_FLIGHT))) {
-        u32 size;
+    if (free_slot == NULL) {
+        return NULL;
+    }
+    size = func_8004A844(arg0);
+    // @recomp A slot past the game's has its own buffer for them, and one past the game's 6x6 takes the heap only while
+    // few are on their way there.
+    if (free_index >= GAME_SLOTS) {
+        archive = board_back_archive(free_index - GAME_SLOTS, size);
+    }
+    if ((archive != NULL) || games || (in_flight < EXTRA_IN_FLIGHT)) {
         free_slot->unk0 = 1;
         free_slot->unk2 = arg0;
         free_slot->bytes = func_8004A868(arg0);
-        size = func_8004A844(arg0);
         free_slot->dirTblSize = size;
-        free_slot->archive = MallocTemp(size);
+        free_slot->archive = (archive != NULL) ? archive : MallocTemp(size);
         osSendMesg(&D_800D6AF0, free_slot, 0);
         return free_slot;
     }
