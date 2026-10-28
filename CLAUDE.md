@@ -74,8 +74,8 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   iris's black, a fade) to them too, through its `src/wipe.cpp`; on a minigame's instructions screen
   `patches/instructions.c` carries its strips of cloud on past 4:3 with a copy of each on either side. The board's
   camera stops where the wider picture reaches the map's edge (`patches/background.c`, with the engine's
-  `src/aspect_ratio.cpp`). A map narrower than the picture (the First Map's opening shot, 5x5 tiles) keeps black at
-  its sides: the game has nothing beside it to draw.
+  `src/aspect_ratio.cpp`). A map no wider than 320 (the First Map's opening shot, 5x5 tiles) keeps black at its
+  sides, the game having nothing beside it to draw, and its 3D and the HUD keep inside 4:3 with it (`board_back.c`).
 - **The survey.** `patches/survey.c`, `src/game/survey.cpp` and `tools/survey.js` let a plan send the game to any
   overlay (a board, a minigame, a menu) the way the game goes there, for the shader list and the plays
   (`docs/web.md`). Overlay indices are the decomp's (`lib/marioparty/src/overlays`).

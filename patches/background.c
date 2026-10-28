@@ -91,8 +91,6 @@ u32 func_8004A844(u16 arg0);
 u8* func_8004A868(u16 arg0);
 void func_80023728(void*);
 f32 mp_aspect_ratio(void);
-void func_8003A4EC(Gfx** gfx, void* image, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8,
-                   s32 arg9, s32 arg10, s32 arg11, s32 arg12, s32 arg13, s32 arg14, s32 arg15, s32 arg16);
 
 // The slots past the game's 40, and their tiles.
 static unk20 extra_slots[SLOTS - GAME_SLOTS];
@@ -314,15 +312,9 @@ static void gfx_words(Gfx** gfx, u32 w0, u32 w1) {
     g->words.w1 = w1;
 }
 
-// func_8004AAA8: a tile, as its two 64x24 halves, at (x, y) on the map, each a quad (board_back.c says why).
-static void draw_tile(Gfx** gfx, u8* data, s32 x, s32 y) {
-    s32 half;
-
-    for (half = 0; half < 2; half++) {
-        func_8003A4EC(gfx, data + half * (TILE_WIDTH * (TILE_HEIGHT / 2) * 2), 0, G_IM_SIZ_16b, TILE_WIDTH,
-                      TILE_HEIGHT / 2, 0, 0, TILE_WIDTH, TILE_HEIGHT / 2, 0, 2, 2, 0, 0, 0, 0);
-        board_back_quad(gfx, x, y + half * (TILE_HEIGHT / 2), TILE_WIDTH, TILE_HEIGHT / 2, 0, 0);
-    }
+// The tile at (j, i) in the grid, or NULL past the grid or where there is none.
+static u8* tile_data(s32 j, s32 i) {
+    return ((j < COLUMNS) && (i < ROWS) && (grid[j][i] != NULL)) ? grid[j][i]->data : NULL;
 }
 
 RECOMP_PATCH void func_8004ACEC(Gfx** game_gfx, s32 arg1, u8 arg2) {
@@ -361,13 +353,15 @@ RECOMP_PATCH void func_8004ACEC(Gfx** game_gfx, s32 arg1, u8 arg2) {
     }
 
     // @recomp The tiles at their places on the map, moved by the scroll.
-    board_back_view(gfx, left_edge(), top_edge(), 1.0f, FALSE);
+    board_back_view(gfx, left_edge(), top_edge(), 1.0f, FALSE, D_800C4F78->unk8 * TILE_WIDTH);
     column0 = first_column() - LEFT_COLUMNS;
     row0 = first_row() - TOP_ROWS;
     for (i = 0; i < ROWS; i++) {
         for (j = 0; j < COLUMNS; j++) {
             if (grid[j][i] != NULL) {
-                draw_tile(gfx, grid[j][i]->data, (column0 + j) * TILE_WIDTH, (row0 + i) * TILE_HEIGHT);
+                // func_8004AAA8's two 64x24 halves, each a quad (board_back.c says why).
+                board_back_tile(gfx, (column0 + j) * TILE_WIDTH, (row0 + i) * TILE_HEIGHT, grid[j][i]->data,
+                                tile_data(j + 1, i), tile_data(j, i + 1), tile_data(j + 1, i + 1));
             }
         }
     }
