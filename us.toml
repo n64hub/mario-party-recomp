@@ -78,8 +78,10 @@ before_vram = 0x80069358
 text = "{ void mp_hud_sprite_end(uint8_t*, gpr); mp_hud_sprite_end(rdram, ctx->r21); }"
 
 # A screen wipe past 4:3 (lib/mario-party-engine/src/wipe.cpp says how): the wipe module's whole-screen rectangle
-# (func_800728F4(gfx, alpha), out through 0x800729C0), and a shape wipe's rectangles around its square
-# (func_8007420C, with gfx in t0, from 0x80074A9C, where it has set their colour).
+# (func_800728F4(gfx, alpha), out through 0x800729C0), and a shape wipe (func_8007420C, with gfx in t0): its draws
+# (from 0x80074250, past its whole-screen rectangle for a closed shape, to its end at 0x80074C14) and its rectangles
+# around its square (from 0x80074A9C, where it has set their colour, with the square's left and right edges in t3 and
+# t4).
 [[patches.hook]]
 func = "func_800728F4"
 before_vram = 0x800728F4
@@ -92,8 +94,18 @@ text = "{ void mp_wipe_fill_end(uint8_t*, gpr); mp_wipe_fill_end(rdram, ctx->r4)
 
 [[patches.hook]]
 func = "func_8007420C"
+before_vram = 0x80074250
+text = "{ void mp_wipe_shape_start(uint8_t*, gpr); mp_wipe_shape_start(rdram, ctx->r8); }"
+
+[[patches.hook]]
+func = "func_8007420C"
 before_vram = 0x80074A9C
-text = "{ void mp_wipe_sides(uint8_t*, gpr); mp_wipe_sides(rdram, ctx->r8); }"
+text = "{ void mp_wipe_square_sides(uint8_t*, gpr, gpr, gpr); mp_wipe_square_sides(rdram, ctx->r8, ctx->r11, ctx->r12); }"
+
+[[patches.hook]]
+func = "func_8007420C"
+before_vram = 0x80074C14
+text = "{ void mp_wipe_shape_end(uint8_t*, gpr); mp_wipe_shape_end(rdram, ctx->r8); }"
 
 # A minigame's instructions screen past 4:3 (patches/instructions.c says how): after its setup has placed and scaled
 # each of the two strips of cloud along the bottom (form 0xB000A, then 0xB000B, each in s0), a copy of it on each side.
