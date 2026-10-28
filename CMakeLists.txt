@@ -76,6 +76,10 @@ n64recomp_browser_apply_patches(${CMAKE_SOURCE_DIR}/lib)
 # task interpolated as a frame of its own drew frames between the game's from the first tasks alone, without the HUD,
 # Toad or a text box, which flickered.
 set(RT64_GAME_FRAME_WORKLOADS ON)
+# The VI thread queues a VI's screen update after it swaps in the framebuffer the game gave it, as with Emscripten:
+# queued before, a frame was shown a VI late, after the next frame's first tasks, and RT64_GAME_FRAME_WORKLOADS ended
+# most game frames at a wait instead, showing one still drawing in parts (Mario Party 1's next scene inside a star wipe).
+set(ULTRAMODERN_SCREEN_UPDATE_AFTER_VI ON)
 # A wipe draws its shape under an extended scissor reaching far past the frame's edges, which RT64 took as the frame's
 # width with it, and on that frame drew what covers the screen's width (the HUD, a board's title card, the star) stretched
 # to the window's, between frames at 4:3. RT64_SCISSOR_INSIDE_FRAMEBUFFER, on with Emscripten and here too, counts it
