@@ -17,4 +17,19 @@ void HuPrcEnd(void);
 #define PRC_CURRENT processcur
 #define PRC_COUNT processcnt
 
+// The controllers' setup and what it uses. The decomp defines RequestSIFunction in src/engine/siman.c only.
+#include "engine/pad.h"
+s32 RequestSIFunction(unkMesg* siMessg, HuSiFunc func, void* arg, s32 type);
+
+#define PAD_INIT func_800138DC
+#define PAD_INIT_SI func_80013770
+#define PAD_REQUEST RequestSIFunction
+#define PAD_REQUEST_T unkMesg
+#define PAD_AUTO_READ func_80014174
+#define PAD_AUTO_READING D_800D12CC
+#define PAD_STICK_LIMIT func_80013AEC
+#define PAD_LOCK D_800D12D0
+#define PAD_LOCK_MESG D_800D12E8
+#define PAD_CONTROLLERS D_800F3778
+
 #endif
