@@ -15,7 +15,15 @@
 // way, since each holds its compressed bytes on the game's 128 KB temporary heap (MallocTemp) until it is decompressed,
 // and the game sized that heap for its 36: a board's start sends every tile in the picture at once, and on DK's Jungle
 // Adventure, whose tiles are the largest, 88 of them filled the heap, MallocTemp gave the next one NULL, and the
-// thread that reads it wrote it to address 0. Everything else is the game's as it was.
+// thread that reads it wrote it to address 0.
+//
+// The game keeps its board camera where a 320x240 picture stays on the map (func_8004A1B0, which every board's camera
+// goes through), so at the map's edge the wider picture ran past it, where there are no tiles, and a black strip
+// opened at the window's side as the camera panned there: the rules tutorial's small board reaches its edges at every
+// turn. Here the camera is kept where the wider picture stays on the map (lib/mario-party-engine's
+// src/aspect_ratio.cpp gives its width), so it stops short of the edge by as much as the window shows past 4:3, and
+// all a 4:3 picture showed there is still on screen. A map narrower than the picture keeps its camera in its middle,
+// with black at both sides, and one no wider than 320 is the game's own. Everything else is the game's as it was.
 
 #include "patches.h"
 #include "PR/os.h"
@@ -82,6 +90,7 @@ u16 func_8004A814(s32 arg0, s32 arg1);
 u32 func_8004A844(u16 arg0);
 u8* func_8004A868(u16 arg0);
 void func_80023728(void*);
+f32 mp_aspect_ratio(void);
 
 // The slots past the game's 40, and their tiles.
 static unk20 extra_slots[SLOTS - GAME_SLOTS];
@@ -205,6 +214,46 @@ static unk20* tile_slot(u16 arg0, s32 games) {
 
 RECOMP_PATCH unk20* func_8004A890(u16 arg0) {
     return tile_slot(arg0, TRUE);
+}
+
+// The picture's half-width, in the 320x240 screen's pixels, that the camera keeps on the map: 160 at 4:3, more in a
+// wider window, as far as the map has room for.
+static f32 camera_half_width(void) {
+    f32 half = 120.0f * mp_aspect_ratio();
+
+    if (half > D_800D6736) {
+        half = D_800D6736;
+    }
+    if (half < 160.0f) {
+        half = 160.0f;
+    }
+    return half;
+}
+
+// func_8004A1B0: the camera's place on the screen at the scale the map is drawn at, kept where the picture stays on the
+// map; what it was kept from, a bit for each edge.
+RECOMP_PATCH u16 func_8004A1B0(Vec2f* arg0, f32 arg1) {
+    // @recomp The picture's half-width for 4:3's 160 across.
+    f32 half = camera_half_width();
+    u16 ret = 0;
+
+    if (arg0->x <= ((-D_800D6736 + half) / arg1) + 160.0f) {
+        arg0->x = ((-D_800D6736 + half) / arg1) + 160.0f;
+        ret |= 1;
+    }
+    if (arg0->x >= ((D_800D6736 - half) / arg1) + 160.0f) {
+        arg0->x = ((D_800D6736 - half) / arg1) + 160.0f;
+        ret |= 2;
+    }
+    if (arg0->y <= ((-D_800D6738 + 120.0f) / arg1) + 120.0f) {
+        arg0->y = ((-D_800D6738 + 120.0f) / arg1) + 120.0f;
+        ret |= 4;
+    }
+    if (arg0->y >= ((D_800D6738 - 120.0f) / arg1) + 120.0f) {
+        arg0->y = ((D_800D6738 - 120.0f) / arg1) + 120.0f;
+        ret |= 8;
+    }
+    return ret;
 }
 
 // Where the picture's left edge is on the map, and the game's first column of tiles there.

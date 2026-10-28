@@ -16,3 +16,4 @@ osCreateMesgQueue_recomp = 0x8F000028;
 osCreateThread_recomp = 0x8F00002C;
 osStartThread_recomp = 0x8F000030;
 recomp_hud_4x3 = 0x8F000034;
+mp_aspect_ratio = 0x8F000038;
