@@ -46,15 +46,16 @@ func = "pfDrawFonts"
 before_vram = 0x80062B84
 text = "ctx->r2 = 0x004FC3C0;"
 
-# The board's HUD at the picture's sides (lib/mario-party-engine/src/hud.cpp says how): the players' panels' places and
-# groups (src/54120.c's func_80054758(player, x, y) sets a panel's place; the board's status, 0x800D83A8, 0x40 bytes a
-# player, has the panel's group at 6, and the sprite groups' addresses are at 0x800EE330), the groups killed (the
-# sprite manager's HuSprGrpKill, func_80064D38(group), and its init, func_80064B70, which forgets them all) and each
-# sprite drawn (func_80068410(gfx, sprite), every path out of it through 0x80069358 with gfx in s5).
+# The board's HUD at the picture's sides (lib/mario-party-engine/src/hud.cpp says how): the players' panels' places
+# and groups (src/54120.c's func_80054758(player, x, y) sets a panel's place; the board's status, 0x800D83A8, 0x40
+# bytes a player, has the panel's group at 6 and the place the board moves it by at 0xC, two floats, and the sprite
+# groups' addresses are at 0x800EE330), the groups killed (the sprite manager's HuSprGrpKill, func_80064D38(group),
+# and its init, func_80064B70, which forgets them all) and each sprite drawn (func_80068410(gfx, sprite), every path
+# out of it through 0x80069358 with gfx in s5).
 [[patches.hook]]
 func = "func_80054758"
 before_vram = 0x80054758
-text = "{ void mp_hud_panel(uint8_t*, int32_t, gpr, int32_t, int32_t); int32_t p = (int32_t)ctx->r4; int16_t g = MEM_H(6, (gpr)(int32_t)0x800D83A8 + p * 0x40); mp_hud_panel(rdram, p, (gpr)(int32_t)MEM_W(g * 4, (gpr)(int32_t)0x800EE330), 0xC, (int16_t)ctx->r5); }"
+text = "{ void mp_hud_panel_at(uint8_t*, int32_t, gpr, int32_t, int32_t, gpr); int32_t p = (int32_t)ctx->r4; gpr s = (gpr)(int32_t)0x800D83A8 + p * 0x40; int16_t g = MEM_H(6, s); mp_hud_panel_at(rdram, p, (gpr)(int32_t)MEM_W(g * 4, (gpr)(int32_t)0x800EE330), 0xC, (int16_t)ctx->r5, s + 0xC); }"
 
 [[patches.hook]]
 func = "func_80064D38"
