@@ -71,3 +71,54 @@ f32 mp_aspect_ratio(void);
 void widescreen_piranhas_ground(omObjData* ground) {
     ground->scale.x = mp_aspect_ratio() * (3.0f / 4.0f);
 }
+
+// Its 14 trees and bushes along the back of the track, forms 1 to 14 of the same object, which the game keeps within
+// the track's scroll plus or minus 1500: each frame (func_800FAEE8_PiranhasPursuit's loop at 0x800FAFA8) it moves one
+// that has fallen behind the scroll minus 1500 on by 3000, so they repeat every 3000. With the camera aimed up to 300
+// behind the scroll, a picture wider than about 2:1 reached past the ring's left end, the jungle's 2D backdrop alone
+// beyond it. A copy of each a ring's width to its left and one to its right, placed each frame where the game's own one
+// is, carries them on as they repeat, to the scroll plus or minus 4500, past a 32:9 picture's edges. us.toml's hooks
+// call these once the setup (func_800FA878_PiranhasPursuit) has made the 14, and after the frame's loop has moved them.
+// At 4:3 the copies are out of the view. They take 28 of the game's 128 forms, of which the minigame uses 92.
+#define PIRANHAS_TREES 14
+#define PIRANHAS_RING 3000.0f
+
+static s16 piranhas_copies[PIRANHAS_TREES][2];
+
+void widescreen_piranhas_trees_copied(omObjData* object) {
+    s32 i;
+    s32 side;
+
+    for (i = 0; i < PIRANHAS_TREES; i++) {
+        for (side = 0; side < 2; side++) {
+            piranhas_copies[i][side] = func_80023FC8(object->model[1 + i]);
+        }
+    }
+}
+
+void widescreen_piranhas_trees(omObjData* object) {
+    s32 i;
+    s32 side;
+
+    for (i = 0; i < PIRANHAS_TREES; i++) {
+        unk_ovl_2D_struct* tree = &D_800F2B7C[object->model[1 + i]];
+
+        for (side = 0; side < 2; side++) {
+            unk_ovl_2D_struct* copy;
+
+            if (piranhas_copies[i][side] < 0) {
+                continue;
+            }
+            copy = &D_800F2B7C[piranhas_copies[i][side]];
+            copy->unk_24 = tree->unk_24 + (side == 0 ? -PIRANHAS_RING : PIRANHAS_RING);
+            copy->unk_28 = tree->unk_28;
+            copy->unk_2C = tree->unk_2C;
+            copy->unk_30 = tree->unk_30;
+            copy->unk_34 = tree->unk_34;
+            copy->unk_38 = tree->unk_38;
+            copy->unk_3C = tree->unk_3C;
+            copy->unk_40 = tree->unk_40;
+            copy->unk_44 = tree->unk_44;
+        }
+    }
+}

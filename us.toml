@@ -140,3 +140,16 @@ text = "{ void instructions_clouds_beside(uint8_t*, recomp_context*); ctx->r4 = 
 func = "func_800FAEE8_PiranhasPursuit"
 before_vram = 0x800FAF48
 text = "{ void widescreen_piranhas_ground(uint8_t*, recomp_context*); ctx->r4 = ctx->r19; widescreen_piranhas_ground(rdram, ctx); }"
+
+# Piranha's Pursuit's trees and bushes copied a ring's width to either side (patches/widescreen.c,
+# widescreen_piranhas_trees): its setup, with the object in s3, once it has made the 14, and its object's frame
+# function, with the object in s3, once its loop has moved those that fell behind.
+[[patches.hook]]
+func = "func_800FA878_PiranhasPursuit"
+before_vram = 0x800FADB0
+text = "{ void widescreen_piranhas_trees_copied(uint8_t*, recomp_context*); ctx->r4 = ctx->r19; widescreen_piranhas_trees_copied(rdram, ctx); }"
+
+[[patches.hook]]
+func = "func_800FAEE8_PiranhasPursuit"
+before_vram = 0x800FB030
+text = "{ void widescreen_piranhas_trees(uint8_t*, recomp_context*); ctx->r4 = ctx->r19; widescreen_piranhas_trees(rdram, ctx); }"
