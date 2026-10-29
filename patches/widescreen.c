@@ -41,7 +41,10 @@ RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
 // board_back_scene_4x3), and the camera's view and the HUD stay inside 4:3.
 // - 0x01, Chance Time: its backdrop, the sky and the sand, is a 2D picture of the screen's size, and its camera's
 //   scissor (0, 0, 319, 239) would otherwise be widened as the whole screen's, its 3D out over the black beside it.
-static const u8 overlays_4x3[] = { 0x01 };
+// - 0x21, Tipsy Tourney: its clouds are a 2D picture of the screen's size behind the four players' views, and they
+//   and the paste timer's lines end at 4:3's edges, so past them the window would show the clear's white and the
+//   views' 3D.
+static const u8 overlays_4x3[] = { 0x01, 0x21 };
 
 void widescreen_overlay(s32 overlay) {
     s32 picture_4x3 = FALSE;
