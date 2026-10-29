@@ -27,4 +27,7 @@
 // The game's natives (src/game/recomp_api.cpp; process.c declares the scheduler's).
 void recomp_load_overlays(u32 rom, void* ram, u32 size);
 
+// Whether the overlay that loads is a scene drawn at 4:3 (widescreen.c).
+void widescreen_overlay(s32 overlay);
+
 #endif
