@@ -5,6 +5,7 @@
 
 #include "patches.h"
 #include "../lib/mario-party-engine/patches/camera_view.h"
+#include "../lib/mario-party-engine/patches/board_back.h"
 
 static s32 widened(unk_Struct00* camera) {
     return camera_view_widened(camera->unkD8.x, camera->unkD8.z);
@@ -33,4 +34,23 @@ RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
 
     // @recomp The whole screen, or the border, to the window's edges.
     camera_view_scissor(gfx, camera->unkD8.x, camera->unkD8.y, camera->unkD8.z, camera->unkD8.w);
+}
+
+// The scenes the game draws at 4:3 whatever the window's width, by their overlay (OvlLoad, overlays.c, calls
+// widescreen_overlay as each loads): the engine keeps black at the window's sides while one plays (board_back.h's
+// board_back_scene_4x3), and the camera's view and the HUD stay inside 4:3.
+// - 0x01, Chance Time: its backdrop, the sky and the sand, is a 2D picture of the screen's size, and its camera's
+//   scissor (0, 0, 319, 239) would otherwise be widened as the whole screen's, its 3D out over the black beside it.
+static const u8 overlays_4x3[] = { 0x01 };
+
+void widescreen_overlay(s32 overlay) {
+    s32 picture_4x3 = FALSE;
+    u32 i;
+
+    for (i = 0; i < sizeof(overlays_4x3); i++) {
+        if (overlays_4x3[i] == overlay) {
+            picture_4x3 = TRUE;
+        }
+    }
+    board_back_scene_4x3(picture_4x3);
 }

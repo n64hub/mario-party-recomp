@@ -29,4 +29,7 @@ RECOMP_PATCH void OvlLoad(s32 overlayIndex) {
     }
 
     D_800C1C70 = 0;
+
+    // @recomp Whether the scene is drawn at 4:3 (widescreen.c).
+    widescreen_overlay(overlayIndex);
 }
