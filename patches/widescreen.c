@@ -57,3 +57,17 @@ void widescreen_overlay(s32 overlay) {
     }
     board_back_scene_4x3(picture_4x3);
 }
+
+f32 mp_aspect_ratio(void);
+
+// Piranha's Pursuit (overlay 0x31) in a picture wider than 4:3. Its ground, the dirt track and the grass behind it, is
+// one object (its models from file 0x450000, set up in func_800FA878_PiranhasPursuit) that the game moves to the
+// track's scroll each frame and slides only the texture of (func_800FAEE8_PiranhasPursuit: the scroll over 24 times
+// its x scale), and the camera aims up to 300 units behind it, so at 4:3 its left end is just past the picture's edge
+// and a wider one showed black beside it, below the jungle. us.toml's hook calls this each frame before the game
+// reads the ground's x scale: the ground as many times wider as the picture is than 4:3, which reaches as far past
+// each side as the wider view does (its texture stretched as much, and still moving with the track), and the game's
+// own scale of 1 at 4:3.
+void widescreen_piranhas_ground(omObjData* ground) {
+    ground->scale.x = mp_aspect_ratio() * (3.0f / 4.0f);
+}

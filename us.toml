@@ -133,3 +133,10 @@ text = "{ void instructions_clouds_beside(uint8_t*, recomp_context*); ctx->r4 = 
 func = "func_800F6B14_MinigameInstructions"
 before_vram = 0x800F6E84
 text = "{ void instructions_clouds_beside(uint8_t*, recomp_context*); ctx->r4 = ctx->r16; ctx->r5 = 0xB000B; instructions_clouds_beside(rdram, ctx); }"
+
+# Piranha's Pursuit's ground as wide as the picture (patches/widescreen.c, widescreen_piranhas_ground): its object's
+# frame function, with the object in s3, just before it reads the object's x scale to slide the ground's texture.
+[[patches.hook]]
+func = "func_800FAEE8_PiranhasPursuit"
+before_vram = 0x800FAF48
+text = "{ void widescreen_piranhas_ground(uint8_t*, recomp_context*); ctx->r4 = ctx->r19; widescreen_piranhas_ground(rdram, ctx); }"
