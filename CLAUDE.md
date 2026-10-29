@@ -76,7 +76,7 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   camera stops where the wider picture reaches the map's edge (`patches/background.c`, with the engine's
   `src/aspect_ratio.cpp`). A map no wider than 320 (the First Map's opening shot, 5x5 tiles) keeps black at its
   sides, the game having nothing beside it to draw, and its 3D and the HUD keep inside 4:3 with it (`board_back.c`), as
-  they do in a scene the game draws at 4:3 (Chance Time, `patches/widescreen.c`'s list).
+  they do in a scene the game draws at 4:3 (Chance Time, Tipsy Tourney: `patches/widescreen.c`'s list).
 - **The survey.** `patches/survey.c`, `src/game/survey.cpp` and `tools/survey.js` let a plan send the game to any
   overlay (a board, a minigame, a menu) the way the game goes there, for the shader list and the plays
   (`docs/web.md`). Overlay indices are the decomp's (`lib/marioparty/src/overlays`).
