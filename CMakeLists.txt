@@ -84,6 +84,10 @@ set(ULTRAMODERN_SCREEN_UPDATE_AFTER_VI ON)
 # frames, as with Emscripten: an object the game hides by scaling it to 0 or with a matrix of zeros was interpolated
 # from its last matrix to none in the frames between (Mario Party 2's star across the whole view, a flat light grey).
 set(RT64_SKIP_COLLAPSED_MATCHES ON)
+# The game turns RecompFrontend's single-player mode off, so that four people play four players (src/main/main.cpp),
+# and plays as single-player mode until players are assigned, as with Emscripten: without it a player alone needed to
+# assign their pad or keyboard first, and the keyboard played every pad's player.
+set(RECOMPINPUT_SINGLE_PLAYER_UNTIL_ASSIGNED ON)
 # A wipe draws its shape under an extended scissor reaching far past the frame's edges, which RT64 took as the frame's
 # width with it, and on that frame drew what covers the screen's width (the HUD, a board's title card, the star) stretched
 # to the window's, between frames at 4:3. RT64_SCISSOR_INSIDE_FRAMEBUFFER, on with Emscripten and here too, counts it
