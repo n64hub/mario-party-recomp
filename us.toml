@@ -114,6 +114,14 @@ func = "func_8007420C"
 before_vram = 0x80074C14
 text = "{ void mp_wipe_shape_end(uint8_t*, gpr); mp_wipe_shape_end(rdram, ctx->r8); }"
 
+# A 4:3 picture's sides black (lib/mario-party-engine/src/wipe.cpp, mp_wipe_picture_sides): func_800247FC ends the
+# frame's last display list after its wipe and its text (pfDrawFonts, which returns the list's next command in v0),
+# with its gDPFullSync.
+[[patches.hook]]
+func = "func_800247FC"
+before_vram = 0x80025350
+text = "{ gpr mp_wipe_picture_sides(uint8_t*, gpr); ctx->r2 = mp_wipe_picture_sides(rdram, ctx->r2); }"
+
 # A minigame's instructions screen past 4:3 (patches/instructions.c says how): after its setup has placed and scaled
 # each of the two strips of cloud along the bottom (form 0xB000A, then 0xB000B, each in s0), a copy of it on each side.
 [[patches.hook]]
