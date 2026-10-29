@@ -73,7 +73,8 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   left and right edges, and a picture as wide as the screen stretched over the window wherever the game puts it,
   through lib/mario-party-engine's `src/hud.cpp`, and its hooks in the wipe module draw a wipe's colour (an
   iris's black, a fade) to them too, through its `src/wipe.cpp`; on a minigame's instructions screen
-  `patches/instructions.c` carries its strips of cloud on past 4:3 with a copy of each on either side. The board's
+  `patches/instructions.c` carries its strips of cloud on past 4:3 with a copy of each on either side, and in Piranha's
+  Pursuit `patches/widescreen.c` widens the ground, one mesh only a little wider than 4:3's view. The board's
   camera stops where the wider picture reaches the map's edge (`patches/background.c`, with the engine's
   `src/aspect_ratio.cpp`). A map no wider than 320 (the First Map's opening shot, 5x5 tiles) keeps black at its
   sides, the game having nothing beside it to draw, and its 3D and the HUD keep inside 4:3 with it (`board_back.c`), as
