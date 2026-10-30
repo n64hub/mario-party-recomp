@@ -6,6 +6,7 @@
 #include "patches.h"
 #include "../lib/mario-party-engine/patches/camera_view.h"
 #include "../lib/mario-party-engine/patches/board_back.h"
+#include "rt64_extended_gbi.h"
 
 static s32 widened(unk_Struct00* camera) {
     return camera_view_widened(camera->unkD8.x, camera->unkD8.z);
@@ -42,14 +43,18 @@ RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
 // - 0x01, Chance Time: its backdrop, the sky and the sand, is a 2D picture of the screen's size, and its camera's
 //   scissor (0, 0, 319, 239) would otherwise be widened as the whole screen's, its 3D out over the black beside it.
 // - 0x03, Buried Treasure: its dirt is a 2D picture of the screen's size (sprite 0x150001, drawn by
-//   func_800F9700_BuriedTreasure's rectangles) that the digging takes pixels out of where a player is
+//   func_800F9700_BuriedTreasure's rectangles, below) that the digging takes pixels out of where a player is
 //   (func_800F92D4_BuriedTreasure), the players kept inside 4:3 (func_800F8C84_BuriedTreasure). Stretched over a wide
 //   window, each tunnel showed further from the middle than the player digging it, by as much more as the window is
 //   wider than 4:3.
+// - 0x04, Treasure Divers, and 0x30, Deep Sea Divers: the sky, the sea and the reef far off are a 2D picture of the
+//   screen's size, and the sea the players swim in, its surface, the sand and the rocks, is 3D that ends at 4:3's
+//   edges. Stretched over a wide window, the picture's sea went on past them beside the water's tinted box, its
+//   horizon and reef no longer meeting the 3D's.
 // - 0x21, Tipsy Tourney: its clouds are a 2D picture of the screen's size behind the four players' views, and they
 //   and the paste timer's lines end at 4:3's edges, so past them the window would show the clear's white and the
 //   views' 3D.
-static const u8 overlays_4x3[] = { 0x01, 0x03, 0x21 };
+static const u8 overlays_4x3[] = { 0x01, 0x03, 0x04, 0x21, 0x30 };
 
 void widescreen_overlay(s32 overlay) {
     s32 picture_4x3 = FALSE;
@@ -61,6 +66,49 @@ void widescreen_overlay(s32 overlay) {
         }
     }
     board_back_scene_4x3(picture_4x3);
+}
+
+// The sprites the sprite manager has loaded, each's first frame's texels first.
+typedef struct {
+    u8* texels;
+} LoadedFrame;
+typedef struct {
+    LoadedFrame* frame;
+} LoadedSprite;
+extern LoadedSprite* D_800EC700[];
+extern s16 D_800FC198_BuriedTreasure[6];
+
+// Buried Treasure's dirt, a sprite of 320x244 the game draws as 61 rectangles 4 lines high, each the screen's width.
+// RT64 stretches a rectangle that covers the screen's whole width over a wide window by itself, and the scene's black
+// sides covered only so much of it: over a window as wide as 32:9 the dirt still showed stretched inside 4:3, its
+// tunnels away from the players digging them. Its rectangles are kept to 4:3 (G_EX_ASPECT_ADJUST), as the console
+// draws them. With their three commands the list is 622 of the 1024 the game allocates for it.
+RECOMP_PATCH void func_800F9700_BuriedTreasure(Gfx* arg0) {
+    u8* timg = D_800EC700[D_800FC198_BuriedTreasure[1]]->frame->texels;
+    s16 i;
+
+    gDPPipeSync(arg0++);
+    gDPSetCycleType(arg0++, G_CYC_1CYCLE);
+    gSPSetGeometryMode(arg0++, G_TEXTURE_GEN_LINEAR);
+    gDPSetCombineMode(arg0++, G_CC_DECALRGBA, G_CC_DECALRGBA);
+    gDPSetRenderMode(arg0++, G_RM_ZB_XLU_SURF, G_RM_NOOP2);
+    gDPSetTextureFilter(arg0++, G_TF_POINT);
+    gDPSetTexturePersp(arg0++, G_TP_NONE);
+    gDPSetColorDither(arg0++, G_CD_DISABLE);
+
+    // @recomp The rectangles kept to 4:3.
+    gEXEnable(arg0++);
+    gEXSetRectAspect(arg0++, G_EX_ASPECT_ADJUST);
+
+    for (i = 0; i < 61; i++) {
+        gDPLoadTextureTile(arg0++, timg, G_IM_FMT_RGBA, G_IM_SIZ_16b, 320, 0, 0, i * 4, 319, i * 4 + 3, 0,
+                           G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, 2, G_TX_NOLOD,
+                           G_TX_NOLOD);
+        gSPTextureRectangle(arg0++, 0, (i * 4) * 4, 320 * 4, (i * 4 + 4) * 4, G_TX_RENDERTILE, 0, 0, 0x0400, 0x0400);
+    }
+
+    gEXSetRectAspect(arg0++, G_EX_ASPECT_AUTO);
+    gSPEndDisplayList(arg0++);
 }
 
 f32 mp_aspect_ratio(void);
