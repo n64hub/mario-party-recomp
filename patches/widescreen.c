@@ -46,10 +46,14 @@ RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
 //   (func_800F92D4_BuriedTreasure), the players kept inside 4:3 (func_800F8C84_BuriedTreasure). Stretched over a wide
 //   window, each tunnel showed further from the middle than the player digging it, by as much more as the window is
 //   wider than 4:3.
+// - 0x04, Treasure Divers, and 0x30, Deep Sea Divers: the sky, the sea and the reef far off are a 2D picture of the
+//   screen's size, and the sea the players swim in, its surface, the sand and the rocks, is 3D that ends at 4:3's
+//   edges. Stretched over a wide window, the picture's sea went on past them beside the water's tinted box, its
+//   horizon and reef no longer meeting the 3D's.
 // - 0x21, Tipsy Tourney: its clouds are a 2D picture of the screen's size behind the four players' views, and they
 //   and the paste timer's lines end at 4:3's edges, so past them the window would show the clear's white and the
 //   views' 3D.
-static const u8 overlays_4x3[] = { 0x01, 0x03, 0x21 };
+static const u8 overlays_4x3[] = { 0x01, 0x03, 0x04, 0x21, 0x30 };
 
 void widescreen_overlay(s32 overlay) {
     s32 picture_4x3 = FALSE;
