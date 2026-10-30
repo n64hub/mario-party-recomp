@@ -215,14 +215,11 @@ void widescreen_piranhas_trees(omObjData* object) {
 // (board_back_stage_widened, which moves the scene's widest out with them): a sea or a field with nothing standing at
 // its edges, which reads the same wider. A room's walls, a stage built for 4:3 and a painted backdrop keep their cap, and
 // so does Ground Pound's forest floor, whose texture showed smeared stretched that far, bare of the trees past the
-// middle. us.toml's hooks call these in each one's setup, once the stage is made; the game never writes these scales
-// again. omMain copies an object's scale onto its first model each frame, but not an object's it skips, so the model's
-// own is set too.
+// middle, Flower Shower's field, whose rocky rim around the pond showed stretched with it, and Tightrope Treachery's sea,
+// which keeps its width whatever its object's or its model's scale. us.toml's hooks call these in each one's setup, once
+// the stage is made; the game never writes these scales again.
 static void widen_object(omObjData* object, f32 widest) {
-    f32 times = board_back_stage_widened(widest);
-
-    object->scale.x *= times;
-    D_800F2B7C[object->model[0]].unk_3C *= times;
+    object->scale.x *= board_back_stage_widened(widest);
 }
 
 static void widen_model(s16 model, f32 widest) {
@@ -239,18 +236,7 @@ void widescreen_bumper_sea(s16 model) {
     widen_model(model, 1.6f);
 }
 
-// Tightrope Treachery's sea, its first model (file 0x320000), whose waves the game moves vertex by vertex.
-void widescreen_tightrope_sea(omObjData* sea) {
-    widen_object(sea, 1.8f);
-}
-
 // Mushroom Mixup's sea, its first model (file 0x2C0003), whose texture the game scrolls.
 void widescreen_mushroom_sea(omObjData* sea) {
     widen_object(sea, 1.55f);
-}
-
-// Flower Shower's field (file 0x380001), at x 0, under the camera's middle. The pond's water (0x380002 and 0x380003) and
-// the tilting island the players stand on (0x380000) keep their size.
-void widescreen_flower_field(omObjData* field) {
-    widen_object(field, 2.15f);
 }
