@@ -39,7 +39,7 @@ RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
 
 // The scenes the game draws at 4:3 whatever the window's width, by their overlay (OvlLoad, overlays.c, calls
 // widescreen_overlay as each loads): the engine keeps black at the window's sides while one plays (board_back.h's
-// board_back_scene_4x3), and the camera's view and the HUD stay inside 4:3.
+// board_back_scene_widest, at 4:3), and the camera's view and the HUD stay inside 4:3.
 // - 0x01, Chance Time: its backdrop, the sky and the sand, is a 2D picture of the screen's size, and its camera's
 //   scissor (0, 0, 319, 239) would otherwise be widened as the whole screen's, its 3D out over the black beside it.
 // - 0x03, Buried Treasure: its dirt is a 2D picture of the screen's size (sprite 0x150001, drawn by
@@ -54,18 +54,53 @@ RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
 // - 0x21, Tipsy Tourney: its clouds are a 2D picture of the screen's size behind the four players' views, and they
 //   and the paste timer's lines end at 4:3's edges, so past them the window would show the clear's white and the
 //   views' 3D.
-static const u8 overlays_4x3[] = { 0x01, 0x03, 0x04, 0x21, 0x30 };
+// - 0x81, the title: its picture, the logo and the characters on white, is a 2D picture of the screen's size.
+//   Stretched over a wide window, the characters and the logo were drawn as much wider as the window is.
+static const u8 overlays_4x3[] = { 0x01, 0x03, 0x04, 0x21, 0x30, 0x81 };
+
+// The minigames whose 3D ends short of a wide window's edges, and the widest each is drawn, its width over its height:
+// where its stage, floor or sea ends at its narrowest across the minigame's play, at a 32:9 window. The engine draws one
+// to the window's edges up to that width and black past it (board_back_scene_widest), the camera's view stopping there,
+// so a window no wider shows it as before, and a wider one shows black bars rather than the frame's clear around the
+// stage's edges. A floor seen in perspective is narrowest at its far edge, and the widest is that edge's.
+// - 0x0C, Pedal Power: the back wall, off the middle, ends at 1.8 on its right.
+// - 0x11, Bowl Over: the lane in the lower view ends at 3.1.
+// - 0x12, Ground Pound: the hill's top edge, 2.05.
+// - 0x17, Box Mountain Mayhem: the floor's near corners, 1.85.
+// - 0x1A, Mushroom Mixup: the sea's far edge, off the middle as the camera turns, 1.55 on its right.
+// - 0x1B, Hammer Drop: the sea's far edge, 1.65.
+// - 0x1C, Grab Bag: the floor's near edge, 2.65 (narrower in the opening zoom, under START).
+// - 0x1E, Bumper Balls: the sea's far edge, 1.6.
+// - 0x1F, Tightrope Treachery: the sea's far edge under the sky, 1.8.
+// - 0x23, Crane Game: the cabinet's back wall, 1.6.
+// - 0x24, Flower Shower: the field's edge, 2.15.
+// - 0x26, Mario Bandstand: the stage's back wall, 1.55.
+// - 0x2A, the 2 VS 2 field's near edge, 1.7.
+typedef struct {
+    u8 overlay;
+    f32 widest;
+} ShortScene;
+
+static const ShortScene short_scenes[] = {
+    { 0x0C, 1.8f },  { 0x11, 3.1f },  { 0x12, 2.05f }, { 0x17, 1.85f }, { 0x1A, 1.55f }, { 0x1B, 1.65f }, { 0x1C, 2.65f },
+    { 0x1E, 1.6f },  { 0x1F, 1.8f },  { 0x23, 1.6f },  { 0x24, 2.15f }, { 0x26, 1.55f }, { 0x2A, 1.7f },
+};
 
 void widescreen_overlay(s32 overlay) {
-    s32 picture_4x3 = FALSE;
+    f32 widest = 0.0f;
     u32 i;
 
     for (i = 0; i < sizeof(overlays_4x3); i++) {
         if (overlays_4x3[i] == overlay) {
-            picture_4x3 = TRUE;
+            widest = 4.0f / 3.0f;
         }
     }
-    board_back_scene_4x3(picture_4x3);
+    for (i = 0; i < sizeof(short_scenes) / sizeof(short_scenes[0]); i++) {
+        if (short_scenes[i].overlay == overlay) {
+            widest = short_scenes[i].widest;
+        }
+    }
+    board_back_scene_widest(widest);
 }
 
 // The sprites the sprite manager has loaded, each's first frame's texels first.
