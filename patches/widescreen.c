@@ -210,3 +210,59 @@ void widescreen_piranhas_trees(omObjData* object) {
         }
     }
 }
+
+// The seas and fields of short_scenes that are widened in x as they are made, so that they reach a wide window's edges
+// (board_back_stage_widened, which moves the scene's widest out with them): a sea or a field with nothing standing at
+// its edges, which reads the same wider. A room's walls, a stage built for 4:3 and a painted backdrop keep their cap.
+// us.toml's hooks call these in each one's setup, once the stage is made: the game never writes these scales again
+// (omMain copies an object's scale onto its first model each frame, so an object's is set for that one, and a model of
+// its own for the rest).
+static void widen_object(omObjData* object, f32 widest) {
+    object->scale.x *= board_back_stage_widened(widest);
+}
+
+static void widen_model(s16 model, f32 widest) {
+    D_800F2B7C[model].unk_3C *= board_back_stage_widened(widest);
+}
+
+// Hammer Drop's sea, a grid of 6x6 squares the game builds in code (func_800FA2E0_HammerDrop) from x -2400 to 2400.
+void widescreen_hammer_sea(s16 model) {
+    widen_model(model, 1.65f);
+}
+
+// Bumper Balls' sea, a grid built the same way (func_800FB2EC_BumperBalls) from x -1200 to 1200, the island apart.
+void widescreen_bumper_sea(s16 model) {
+    widen_model(model, 1.6f);
+}
+
+// Tightrope Treachery's sea, its first model (file 0x320000), whose waves the game moves vertex by vertex.
+void widescreen_tightrope_sea(omObjData* sea) {
+    widen_object(sea, 1.8f);
+}
+
+// Mushroom Mixup's sea, its first model (file 0x2C0003), whose texture the game scrolls.
+void widescreen_mushroom_sea(omObjData* sea) {
+    widen_object(sea, 1.55f);
+}
+
+// Flower Shower's field (file 0x380001) and the pond's water (files 0x380002 and 0x380003, the second a model of its own),
+// both at x 0, under the camera's middle. The tilting island the players stand on (0x380000) keeps its size.
+void widescreen_flower_field(omObjData* field) {
+    widen_object(field, 2.15f);
+}
+
+void widescreen_flower_water(omObjData* water) {
+    widen_object(water, 2.15f);
+    widen_model(water->model[1], 2.15f);
+}
+
+// Ground Pound's ground (file 0x370000), the forest floor around the stumps, under a camera aimed at x -330: widened
+// about that, so the stumps and the trees on it stay where they stand.
+#define GROUND_POUND_MIDDLE -330.0f
+
+void widescreen_ground_pound_ground(omObjData* ground) {
+    f32 times = board_back_stage_widened(2.05f);
+
+    ground->scale.x *= times;
+    ground->trans.x += GROUND_POUND_MIDDLE * (1.0f - times);
+}
