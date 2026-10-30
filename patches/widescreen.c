@@ -62,15 +62,16 @@ static const u8 overlays_4x3[] = { 0x01, 0x03, 0x04, 0x21, 0x30, 0x81 };
 // where its stage, floor or sea ends at its narrowest across the minigame's play, at a 32:9 window. The engine draws one
 // to the window's edges up to that width and black past it (board_back_scene_widest), the camera's view stopping there,
 // so a window no wider shows it as before, and a wider one shows black bars rather than the frame's clear around the
-// stage's edges. A floor seen in perspective is narrowest at its far edge, and the widest is that edge's.
+// stage's edges. A floor seen in perspective is narrowest at its far edge, and the widest is that edge's. Three seas
+// are widened past theirs once each is made (widen_object and widen_model, below).
 // - 0x0C, Pedal Power: the back wall, off the middle, ends at 1.8 on its right.
 // - 0x11, Bowl Over: the lane in the lower view ends at 3.1.
 // - 0x12, Ground Pound: the hill's top edge, 2.05.
 // - 0x17, Box Mountain Mayhem: the floor's near corners, 1.85.
-// - 0x1A, Mushroom Mixup: the sea's far edge, off the middle as the camera turns, 1.55 on its right.
-// - 0x1B, Hammer Drop: the sea's far edge, 1.65.
+// - 0x1A, Mushroom Mixup: the sea's far edge, off the middle as the camera turns, 1.55 on its right, its sea widened.
+// - 0x1B, Hammer Drop: the sea's far edge, 1.65, its sea widened.
 // - 0x1C, Grab Bag: the floor's near edge, 2.65 (narrower in the opening zoom, under START).
-// - 0x1E, Bumper Balls: the sea's far edge, 1.6.
+// - 0x1E, Bumper Balls: the sea's far edge, 1.6, its sea widened.
 // - 0x1F, Tightrope Treachery: the sea's far edge under the sky, 1.8.
 // - 0x23, Crane Game: the cabinet's back wall, 1.6.
 // - 0x24, Flower Shower: the field's edge, 2.15.
