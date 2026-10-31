@@ -88,6 +88,9 @@ set(RT64_SKIP_COLLAPSED_MATCHES ON)
 # and plays as single-player mode until players are assigned, as with Emscripten: without it a player alone needed to
 # assign their pad or keyboard first, and the keyboard played every pad's player.
 set(RECOMPINPUT_SINGLE_PLAYER_UNTIL_ASSIGNED ON)
+# And until then each pad plays a port of its own, in the order they were connected, the keyboard port 1
+# (RecompFrontend-web's option): four people with four pads play four players without assigning them.
+set(RECOMPINPUT_PADS_IN_ORDER ON)
 # A wipe draws its shape under an extended scissor reaching far past the frame's edges, which RT64 took as the frame's
 # width with it, and on that frame drew what covers the screen's width (the HUD, a board's title card, the star) stretched
 # to the window's, between frames at 4:3. RT64_SCISSOR_INSIDE_FRAMEBUFFER, on with Emscripten and here too, counts it
