@@ -153,3 +153,21 @@ text = "{ void widescreen_piranhas_trees_copied(uint8_t*, recomp_context*); ctx-
 func = "func_800FAEE8_PiranhasPursuit"
 before_vram = 0x800FB030
 text = "{ void widescreen_piranhas_trees(uint8_t*, recomp_context*); ctx->r4 = ctx->r19; widescreen_piranhas_trees(rdram, ctx); }"
+
+# The seas and fields widened in x as they are made (patches/widescreen.c, widen_object and widen_model): each setup once
+# its stage is made, with its model's index in v0 or its object in s1. The game's registers are kept around the
+# call, which is made between two of its instructions.
+[[patches.hook]]
+func = "func_800FA2E0_HammerDrop"
+before_vram = 0x800FA9E4
+text = "{ void widescreen_hammer_sea(uint8_t*, recomp_context*); recomp_context saved = *ctx; ctx->r4 = ctx->r2; widescreen_hammer_sea(rdram, ctx); *ctx = saved; }"
+
+[[patches.hook]]
+func = "func_800FB2EC_BumperBalls"
+before_vram = 0x800FB9DC
+text = "{ void widescreen_bumper_sea(uint8_t*, recomp_context*); recomp_context saved = *ctx; ctx->r4 = ctx->r2; widescreen_bumper_sea(rdram, ctx); *ctx = saved; }"
+
+[[patches.hook]]
+func = "func_800FA454_MushroomMixup"
+before_vram = 0x800FA4E4
+text = "{ void widescreen_mushroom_sea(uint8_t*, recomp_context*); recomp_context saved = *ctx; ctx->r4 = ctx->r17; widescreen_mushroom_sea(rdram, ctx); *ctx = saved; }"

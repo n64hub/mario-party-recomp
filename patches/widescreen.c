@@ -62,15 +62,16 @@ static const u8 overlays_4x3[] = { 0x01, 0x03, 0x04, 0x21, 0x30, 0x81 };
 // where its stage, floor or sea ends at its narrowest across the minigame's play, at a 32:9 window. The engine draws one
 // to the window's edges up to that width and black past it (board_back_scene_widest), the camera's view stopping there,
 // so a window no wider shows it as before, and a wider one shows black bars rather than the frame's clear around the
-// stage's edges. A floor seen in perspective is narrowest at its far edge, and the widest is that edge's.
+// stage's edges. A floor seen in perspective is narrowest at its far edge, and the widest is that edge's. Three seas
+// are widened past theirs once each is made (widen_object and widen_model, below).
 // - 0x0C, Pedal Power: the back wall, off the middle, ends at 1.8 on its right.
 // - 0x11, Bowl Over: the lane in the lower view ends at 3.1.
 // - 0x12, Ground Pound: the hill's top edge, 2.05.
 // - 0x17, Box Mountain Mayhem: the floor's near corners, 1.85.
-// - 0x1A, Mushroom Mixup: the sea's far edge, off the middle as the camera turns, 1.55 on its right.
-// - 0x1B, Hammer Drop: the sea's far edge, 1.65.
+// - 0x1A, Mushroom Mixup: the sea's far edge, off the middle as the camera turns, 1.55 on its right, its sea widened.
+// - 0x1B, Hammer Drop: the sea's far edge, 1.65, its sea widened.
 // - 0x1C, Grab Bag: the floor's near edge, 2.65 (narrower in the opening zoom, under START).
-// - 0x1E, Bumper Balls: the sea's far edge, 1.6.
+// - 0x1E, Bumper Balls: the sea's far edge, 1.6, its sea widened.
 // - 0x1F, Tightrope Treachery: the sea's far edge under the sky, 1.8.
 // - 0x23, Crane Game: the cabinet's back wall, 1.6.
 // - 0x24, Flower Shower: the field's edge, 2.15.
@@ -209,4 +210,34 @@ void widescreen_piranhas_trees(omObjData* object) {
             copy->unk_44 = tree->unk_44;
         }
     }
+}
+
+// The seas and fields of short_scenes that are widened in x as they are made, so that they reach a wide window's edges
+// (board_back_stage_widened, which moves the scene's widest out with them): a sea or a field with nothing standing at
+// its edges, which reads the same wider. A room's walls, a stage built for 4:3 and a painted backdrop keep their cap, and
+// so does Ground Pound's forest floor, whose texture showed smeared stretched that far, bare of the trees past the
+// middle, Flower Shower's field, whose rocky rim around the pond showed stretched with it, and Tightrope Treachery's sea,
+// which keeps its width whatever its object's or its model's scale. us.toml's hooks call these in each one's setup, once
+// the stage is made; the game never writes these scales again.
+static void widen_object(omObjData* object, f32 widest) {
+    object->scale.x *= board_back_stage_widened(widest);
+}
+
+static void widen_model(s16 model, f32 widest) {
+    D_800F2B7C[model].unk_3C *= board_back_stage_widened(widest);
+}
+
+// Hammer Drop's sea, a grid of 6x6 squares the game builds in code (func_800FA2E0_HammerDrop) from x -2400 to 2400.
+void widescreen_hammer_sea(s16 model) {
+    widen_model(model, 1.65f);
+}
+
+// Bumper Balls' sea, a grid built the same way (func_800FB2EC_BumperBalls) from x -1200 to 1200, the island apart.
+void widescreen_bumper_sea(s16 model) {
+    widen_model(model, 1.6f);
+}
+
+// Mushroom Mixup's sea, its first model (file 0x2C0003), whose texture the game scrolls.
+void widescreen_mushroom_sea(omObjData* sea) {
+    widen_object(sea, 1.55f);
 }
