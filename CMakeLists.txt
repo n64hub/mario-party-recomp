@@ -216,6 +216,7 @@ target_sources(MarioPartyRecompiled PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/mario-party-engine/src/hud.cpp
     ${CMAKE_SOURCE_DIR}/lib/mario-party-engine/src/wipe.cpp
     ${CMAKE_SOURCE_DIR}/lib/mario-party-engine/src/aspect_ratio.cpp
+    ${CMAKE_SOURCE_DIR}/lib/mario-party-engine/src/board_options.cpp
     ${CMAKE_SOURCE_DIR}/src/game/recomp_api.cpp
     ${CMAKE_SOURCE_DIR}/src/game/survey.cpp
 )

@@ -171,3 +171,18 @@ text = "{ void widescreen_bumper_sea(uint8_t*, recomp_context*); recomp_context 
 func = "func_800FA454_MushroomMixup"
 before_vram = 0x800FA4E4
 text = "{ void widescreen_mushroom_sea(uint8_t*, recomp_context*); recomp_context saved = *ctx; ctx->r4 = ctx->r17; widescreen_mushroom_sea(rdram, ctx); *ctx = saved; }"
+
+# Board Movement and Map Scrolling (lib/mario-party-engine/src/board_options.cpp), Original by default.
+# Fast board movement: func_8004D6FC(player, speed) walks a player to the next space at a speed, 19.0 (0x41980000, in
+# a1) from all three of its callers (func_8005727C's walk, func_8005C834's and FirstMap's), at twice that, 38.0.
+[[patches.hook]]
+func = "func_8004D6FC"
+before_vram = 0x8004D6FC
+text = "{ int mp_board_movement_fast(void); if ((uint32_t)ctx->r5 == 0x41980000u && mp_board_movement_fast()) ctx->r5 = 0x42180000; }"
+
+# Fast map scrolling: func_80058E64, the map's view, sets the board camera's speed (func_8004B838, f12) to 4.0 as it
+# starts, which the camera follows the stick's target at: twice that.
+[[patches.hook]]
+func = "func_80058E64"
+before_vram = 0x80058F5C
+text = "{ int mp_map_scrolling_fast(void); if (mp_map_scrolling_fast()) ctx->f12.fl *= 2.0f; }"
