@@ -66,9 +66,11 @@ This repo is the game: its recompilation, the patches over it, the desktop build
 - **Microcodes.** Graphics go to RT64. Audio: aspMain, recompiled by RSPRecomp from `aspMain.us.toml` (its header
   says how its layout was found; it is Bomberman 64's microcode, byte for byte).
 - **Saves.** EEPROM, 4 Kbit. `main.cpp` declares `SaveType::Eep4k`; the runtime keeps it in `saves/`.
--  **Drawing.** RT64 interpolates the game's 30 frames a second to the display's rate with no tags in the game's display
-  lists (a board's camera pans by an even step at every present). The game draws a frame in several RSP tasks, one a
-  camera (`func_8002D614`), some of them empty, which RT64 interpolates as one game frame with
+-  **Drawing.** RT64 interpolates the game's 30 frames a second to the display's rate (a board's camera pans by an even
+  step at every present). The game's display lists have no tags of their own: `us.toml`'s hooks in the model walk and
+  the draw of its queues tag each 3D model's parts with an ID of their own, through lib/mario-party-engine's
+  `src/model_ids.cpp`, and RT64 pairs whatever else the game draws by itself. The game draws a frame in several RSP
+  tasks, one a camera (`func_8002D614`), some of them empty, which RT64 interpolates as one game frame with
   RT64_GAME_FRAME_WORKLOADS, on with Emscripten and in `CMakeLists.txt` on the desktop too. It draws a picture wider
   than 4:3 with Aspect Ratio Expand: `patches/widescreen.c` takes a camera's view to the window's edges and
   `patches/background.c` a board's background, through lib/mario-party-engine's `camera_view.c` and `board_back.c`

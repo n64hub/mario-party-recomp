@@ -186,3 +186,37 @@ text = "{ int mp_board_movement_fast(void); if ((uint32_t)ctx->r5 == 0x41980000u
 func = "func_80058E64"
 before_vram = 0x80058F5C
 text = "{ int mp_map_scrolling_fast(void); if (mp_map_scrolling_fast()) ctx->f12.fl *= 2.0f; }"
+
+# A 3D model's parts paired with their own between the game's frames (lib/mario-party-engine/src/model_ids.cpp says
+# how). func_800247FC walks the models for each camera (s3), s1 the slot of the one whose parts func_8002C1A8(data, ...)
+# queues (from 0x80025148, its data in a0). func_8002D2CC queues a part of the model in s1, its part number in s3, at
+# its place s2 of the queue of its layer s4, from 0x8002D5A4: the queue is a queue a layer, D_800ED0D8's 8, each as
+# long as the u8 at 0x800C3500 has for it, so a part's place in all of them is its place in its layer's after all of
+# the layers before it. func_8002D614 draws the queues: each part's gSPMatrix from 0x8002DA50, at s1, the list's next
+# command (0x800F37DC) already past it, with the part's entry (s0, of 0x5C bytes from its layer's queue, at s2, the
+# layer in s3) and its matrix (at 0x44), then its display list through func_8002CDEC, back at 0x8002DA80. The frame's
+# number is at 0x800F3848, and its display list starts at 0x800F37E0, 0x800F50BA commands long.
+[[patches.hook]]
+func = "func_800247FC"
+before_vram = 0x80025148
+text = "{ void mp_model_slot(uint8_t*, int32_t, int32_t, gpr); mp_model_slot(rdram, (int16_t)ctx->r19, (int16_t)ctx->r17, ctx->r4); }"
+
+[[patches.hook]]
+func = "func_800247FC"
+before_vram = 0x80025150
+text = "{ void mp_model_slot_end(uint8_t*); mp_model_slot_end(rdram); }"
+
+[[patches.hook]]
+func = "func_8002D2CC"
+before_vram = 0x8002D5A4
+text = "{ void mp_model_queued(uint8_t*, int32_t, int32_t, gpr); int32_t place = (int16_t)ctx->r18; for (int32_t layer = 0; layer < (int32_t)(uint8_t)ctx->r20; layer++) place += MEM_BU(layer, (gpr)(int32_t)0x800C3500); mp_model_queued(rdram, place, (int16_t)ctx->r19, ctx->r17); }"
+
+[[patches.hook]]
+func = "func_8002D614"
+before_vram = 0x8002DA50
+text = "{ gpr mp_model_push(uint8_t*, gpr, int32_t, gpr, int32_t, gpr, int32_t); int32_t place = (int32_t)(ctx->r16 - (gpr)(int32_t)MEM_W(0, ctx->r18)) / 0x5C; for (int32_t layer = 0; layer < (int16_t)ctx->r19; layer++) place += MEM_BU(layer, (gpr)(int32_t)0x800C3500); ctx->r17 = mp_model_push(rdram, ctx->r17, place, (gpr)(int32_t)MEM_W(0x44, ctx->r16), (int32_t)MEM_W(0, (gpr)(int32_t)0x800F3848), (gpr)(int32_t)MEM_W(0, (gpr)(int32_t)0x800F37E0), MEM_HU(0, (gpr)(int32_t)0x800F50BA) * 8); MEM_W(0, (gpr)(int32_t)0x800F37DC) = (int32_t)(ctx->r17 + 8); }"
+
+[[patches.hook]]
+func = "func_8002D614"
+before_vram = 0x8002DA80
+text = "{ void mp_model_pop(uint8_t*, gpr); mp_model_pop(rdram, (gpr)(int32_t)0x800F37DC); }"
