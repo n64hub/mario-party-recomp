@@ -50,6 +50,9 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 ninja -C build MarioPartyRecompiled
 ```
 
+With [ccache](https://ccache.dev) on `PATH` every compile goes through it, so a new build dir or another checkout
+of the same code compiles only what changed since the last build on that computer (CMakeLists.txt says how).
+
 `tools/recompile.sh` builds N64Recomp from the submodule the first time, then translates the game. Run
 `build/MarioPartyRecompiled.exe` from the repo's root, pick the ROM with Load ROM, then Start Game.
 
