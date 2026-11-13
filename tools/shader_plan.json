@@ -19,7 +19,8 @@
   "OptionsHouse, 30 s of A in each, and MinigameIsland, its start screen (0x78) and its introduction, A until the island",
   "(0x71) or 150 s, then 30 s more (on the survey's save it leaves for the rules' board, not the island, so the island's",
   "own shaders aren't in it). The survey (patches/survey.c, tools/survey.js) sends the hub's trips to the rules' board to",
-  "each board, minigame's instructions or Chance Time, and the warp pipe to each place, as tools/shader_plan.json says."
+  "each board, minigame's instructions or Chance Time, and the warp pipe to each place, as tools/shader_plan.json says.",
+  "Three shaders tools/play_plan.json missed on a fresh profile are added to section 0 by hand."
  ],
  "load": [
   [

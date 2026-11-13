@@ -17,6 +17,7 @@
 # (0x71) or 150 s, then 30 s more (on the survey's save it leaves for the rules' board, not the island, so the island's
 # own shaders aren't in it). The survey (patches/survey.c, tools/survey.js) sends the hub's trips to the rules' board to
 # each board, minigame's instructions or Chance Time, and the warp pipe to each place, as tools/shader_plan.json says.
+# Three shaders tools/play_plan.json missed on a fresh profile are added to section 0 by hand.
 00404241 00808cff fcff97ff ff2cfe7f 04cb540b
 005041c9 00800cff fcffffff fffdf6fb 0800000b
 005041c8 00800cff fcffffff fffdf6fb 0800000b
@@ -59,6 +60,9 @@
 0c087009 00808cff fcffffff fffcf279 04cb540b
 0c087009 00800cff fcffffff fffcf279 04cb540b
 00404241 0080acff fcff97ff ff2cfe7f 04cb540b
+00552048 00800cff fcffffff fffcf279 0ccb5408
+00552048 00800cff fcffffff fffcf279 0ccb540a
+0f0a4000 00800cff fcffffff fffdf6fb 08000008
 section RulesBoard
 0c087009 00808cff fcffffff fffcf279 0ccb540b
 00553038 0088acbf fc127e24 fffff3f9 088a000c
