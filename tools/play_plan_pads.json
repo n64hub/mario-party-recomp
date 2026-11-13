@@ -1,0 +1,47 @@
+{
+ "header": [
+  "The pads' plan for N64Recomp-browser's tools/play_page.mjs, played with its tools/gamepad_probe.js as the preload",
+  "(--preload): tools/play_plan.json's play with two stand-in pads of one model plugged in at the launcher, before Start",
+  "Game, as a player's pads are there when the game starts. Each pad plays a port of its own in the order they were",
+  "plugged in (RECOMPINPUT_PADS_IN_ORDER), with no players assigned: the game counts two controllers as it starts them",
+  "(D_800F3778, 0x800F3778, src/engine/pad.c's func_80013770), so it offers a player for each, and pad 2's A is port",
+  "2's alone (ContBtn[1], 0x800EDEB6). Toad's walk through Mushroom Village rumbles port 1, the save's player, which",
+  "reaches pad 1 (padRumbles(): plays per pad, in the order they were plugged in): src/main/main.cpp's Rumble Pak in",
+  "each port with a controller."
+ ],
+ "page": "MarioPartyRecompiled.html",
+ "load": [
+  ["wait",8000]
+ ],
+ "setup": [
+  ["rom",627,364],
+  ["wait",3000]
+ ],
+ "start": [
+  ["eval","plugPads([\"Xbox 360 Controller (XInput STANDARD GAMEPAD)\",\"Xbox 360 Controller (XInput STANDARD GAMEPAD)\"])"],
+  ["click",627,364],
+  ["wait",15000],
+  ["shot","opening.png"],
+  ["pressUntil","Enter","Enter",13,150,2500,"n64r(0x800F09F4) === 0x69",90000],
+  ["wait",4000],
+  ["shot","village.png"],
+  ["eval","`controllers ${n64r(0x800F3778) >>> 16}`"],
+  ["need","(n64r(0x800F3778) >>> 16) === 2"],
+  ["eval","padSet(1, { buttons: { 0: 1 } })"],
+  ["wait",500],
+  ["eval","`ports 1 and 2's buttons ${(n64r(0x800EDEB4) >>> 0).toString(16)}`"],
+  ["need","(n64r(0x800EDEB4) >>> 0) === 0x8000"],
+  ["eval","padSet(1)"]
+ ],
+ "play": [
+  ["pressUntil","Space"," ",32,150,1500,"(o => o >= 0x36 && o <= 0x3E)(n64r(0x800F09F4))",120000],
+  ["need","(o => o >= 0x36 && o <= 0x3E)(n64r(0x800F09F4))"],
+  ["wait",10000],
+  ["shot","board_start.png"],
+  ["pressUntil","Space"," ",32,150,2000,"false",45000],
+  ["shot","board.png"],
+  ["need","(o => o >= 0x36 && o <= 0x3E)(n64r(0x800F09F4))"],
+  ["eval","`${padRumbles()} calls ${padRumbleCalls()}`"],
+  ["need","Number(padRumbles().split(' ')[1]) > 0"]
+ ]
+}
