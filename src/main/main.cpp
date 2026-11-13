@@ -177,8 +177,6 @@ static uint32_t output_channels = 2;
 constexpr uint32_t duplicated_input_frames = 4;
 static uint32_t discarded_output_frames;
 
-constexpr uint32_t bytes_per_frame = input_channels * sizeof(float);
-
 // The page plays through N64Recomp-browser's audio output (frontend/audio_output.h), not SDL's queue: Emscripten's
 // SDL2 plays from the page's thread, where WebGPU's work runs, and its sound broke up whenever that thread was busy.
 // Both take and count whole output frames.
@@ -254,20 +252,23 @@ void queue_samples(int16_t* audio_data, size_t sample_count) {
     queue_audio(samples_to_queue, num_bytes_to_queue);
 }
 
-// What osAiGetLength reads: the frames queued, less a retrace's worth, so that the game makes enough to cover a late
-// one.
+// What osAiGetLength reads, in frames at the game's rate. The game's audio manager (libultra's sample one) queues the
+// buffer it made last, then reads the length and makes the next one a retrace's frames less the length, plus
+// 240 (0xF0). On a console the length is what is left of the buffer playing, not of the one just queued: the frames
+// queued less about a retrace, which leaves about those 240 frames queued when the game makes its next
+// buffer. A console's audio thread, woken by the retrace itself, is never that late, but a PC's often is by a few ms,
+// and the device played silence until the next buffer came: a run of zeros about 22 ms long, every few seconds on a
+// busy host. So the length reads three retraces less than the queue, keeping two retraces more queued (about what
+// Mario Party 3's n_audio manager keeps, which never ran short).
+// And it never reads more than a retrace: the manager checks the size it makes against its smallest unsigned, so a
+// longer queue (the boot, a late thread catching up) made a size below zero, a buffer that isn't played.
 size_t get_frames_remaining() {
-    constexpr float buffer_offset_frames = 1.0f;
-    uint64_t buffered_byte_count = get_queued_audio_bytes();
-    buffered_byte_count = buffered_byte_count * 2 * sample_rate / output_sample_rate / output_channels;
-    uint32_t frames_per_vi = (sample_rate / 60);
-    if (buffered_byte_count > (buffer_offset_frames * bytes_per_frame * frames_per_vi)) {
-        buffered_byte_count -= (buffer_offset_frames * bytes_per_frame * frames_per_vi);
-    }
-    else {
-        buffered_byte_count = 0;
-    }
-    return static_cast<uint32_t>(buffered_byte_count / bytes_per_frame);
+    constexpr uint64_t buffer_offset_retraces = 3;
+    uint64_t frames_per_vi = sample_rate / 60;
+    uint64_t queued_frames = get_queued_audio_bytes() / (output_channels * sizeof(float)) * sample_rate / output_sample_rate;
+    uint64_t offset_frames = buffer_offset_retraces * frames_per_vi;
+    uint64_t remaining_frames = queued_frames > offset_frames ? queued_frames - offset_frames : 0;
+    return static_cast<size_t>(remaining_frames < frames_per_vi ? remaining_frames : frames_per_vi);
 }
 
 void update_audio_converter() {
