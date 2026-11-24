@@ -339,6 +339,14 @@ func = "func_800F87A0_PlatformPeril"
 before_vram = 0x800F8ACC
 text = "{ void widescreen_platform_parked(uint8_t*, recomp_context*); recomp_context saved = *ctx; ctx->r4 = ctx->r18; widescreen_platform_parked(rdram, ctx); *ctx = saved; }"
 
+# A board's characters and props hidden once off the screen (patches/widescreen.c, widescreen_board_shown): in
+# func_8003DE60, after func_8004B730 has written the one's place on the screen at sp + 0x10, before the test loads its X.
+# The game's registers are kept around the call.
+[[patches.hook]]
+func = "func_8003DE60"
+before_vram = 0x8003DF2C
+text = "{ void widescreen_board_shown(uint8_t*, recomp_context*); recomp_context saved = *ctx; ctx->r4 = ctx->r29 + 0x10; widescreen_board_shown(rdram, ctx); *ctx = saved; }"
+
 # A 3D model's texture clamped where its triangles' part of it ends (src/game/model_tiles.cpp says why): Crazy Cutter's
 # cones, barricades and poles had a thin dark line under them above the console's resolution, a row of the picture
 # under theirs in their texture's sheet. func_8002E488 writes a batch of a model part's triangles as the model is made,
