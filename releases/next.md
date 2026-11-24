@@ -1,1 +1,0 @@
-- In Mushroom Mix-Up in a wide window, a player who falls in and the Blooper dragging them away now swim off the side of the screen. Before, both vanished in the open sea where a 4:3 picture's edge would be.
