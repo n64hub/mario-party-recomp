@@ -8,6 +8,10 @@
 #include "../lib/mario-party-engine/patches/board_back.h"
 #include "rt64_extended_gbi.h"
 
+// The engine's model_ids.cpp: whether the camera cut to another shot, told by its view's jump, so its models' parts
+// are drawn at the new shot, not swept partway to it in the frame RT64 draws between the game's two.
+void mp_model_camera(s32 camera, Mtx* view, Mtx* projection);
+
 static s32 widened(unk_Struct00* camera) {
     return camera_view_widened(camera->unkD8.x, camera->unkD8.z);
 }
@@ -28,6 +32,9 @@ RECOMP_PATCH void func_8001D658(s16 index, Gfx** gfx) {
     // @recomp A widened camera's viewport in the middle, what it was moved by in its projection.
     camera_view_projection(gfx, index, viewport, camera->unk4C, projection, widened(camera));
     gSPMatrix((*gfx)++, (void*)projection + 0x80000040, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    // @recomp A cut of the camera to another shot, its models not interpolated across it. The view is the Mtx after
+    // the projection (func_8001D57C's guLookAt).
+    mp_model_camera(index, projection + 1, projection);
 }
 
 RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
