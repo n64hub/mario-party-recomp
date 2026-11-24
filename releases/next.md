@@ -1,1 +1,0 @@
-- In the Mini-Game House, the red exit door no longer slides out of its archway, with white showing beside it, as the camera turns from it to the Pot o' Skills or the Mini-Game table. The room now turns as one in the frames drawn between the game's own.
