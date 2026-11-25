@@ -32,7 +32,4 @@ RECOMP_PATCH void OvlLoad(s32 overlayIndex) {
 
     // @recomp Whether the scene is drawn at 4:3 (widescreen.c).
     widescreen_overlay(overlayIndex);
-
-    // @recomp The Unlocks option, taken at each screen (unlock_all.c).
-    unlock_all_overlay();
 }
