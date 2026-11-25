@@ -1,2 +1,0 @@
-- On the Board Selection screen, each board's preview picture is now one smooth picture. Before, a line ran across its middle, sharp in a big window, and its bottom-right quarter was drawn brighter than the rest.
-- In Shell Game in a wide window, the coins poured from the top-left corner into the player at the start now fly whole through the window's left margin. Before, they were cut off along the 4:3 picture's left edge, and those past it not drawn.
