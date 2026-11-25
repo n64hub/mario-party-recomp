@@ -30,4 +30,7 @@ void recomp_load_overlays(u32 rom, void* ram, u32 size);
 // Whether the overlay that loads is a scene drawn at 4:3 (widescreen.c).
 void widescreen_overlay(s32 overlay);
 
+// The Unlocks option, taken as an overlay loads (unlock_all.c).
+void unlock_all_overlay(void);
+
 #endif

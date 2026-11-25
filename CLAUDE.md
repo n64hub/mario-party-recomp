@@ -39,7 +39,8 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   Windows and Linux both, which the work that fixed it sees out and names in its answer.
 - The scope is the game as it plays, plus what a web page needs (RT64 interpolation to the display's rate, resolution
   Auto), plus modern enhancements: each an option with an Original value that plays as the console does, none
-  changing how the game plays. USA only.
+  changing how the game plays, but for Unlocks (what is open to play, off by default, the maintainer's choice for
+  issue #184). USA only.
 - The code the Mario Party recomps share is `lib/mario-party-engine` (n64hub/mario-party-engine): the process
   scheduler's patches and natives and `gen_syms.py`, written once against this game's names in
   `patches/engine_names.h`. A change to it is a commit there that each game's submodule moves onto, and code this game
@@ -96,6 +97,10 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   Divers, the title: `patches/widescreen.c`'s list). A minigame whose 3D ends short of a wide window's edges (Mario
   Bandstand's stage, Hammer Drop's sea) is drawn no wider than where it ends, `patches/widescreen.c`'s second list, with
   black bars only past that.
+- **Unlocks.** The General tab's Unlocks option (`src/game/config.cpp`), on All, sets what the game has a player earn
+  in GwCommon at each overlay load (`patches/unlock_all.c`), keeping the player's own bits beside them: the EEPROM
+  writes (WriteEeprom) take the player's own, and loads, a new save and the game's flag setters update them. So the
+  save holds only what was earned, and Original puts GwCommon back at the next overlay.
 - **The survey.** `patches/survey.c`, `src/game/survey.cpp` and `tools/survey.js` let a plan send the game to any
   overlay (a board, a minigame, a menu) the way the game goes there, for the shader list and the plays
   (`docs/web.md`). Overlay indices are the decomp's (`lib/marioparty/src/overlays`).

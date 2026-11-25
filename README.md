@@ -92,6 +92,13 @@ Party recomps. Each is Original by default, which plays as the console does:
   speed does, whatever the walking speed in a game's pause menu says.
 - **Map Scrolling**, Fast: the view moves twice as fast when you look around a board's map.
 
+After them comes one for this game alone, Original by default too:
+
+- **Unlocks**, All: everything the game has you earn is open from the next screen on: every board, Bowser's Magma
+  Mountain and Eternal Star too, with no First Map to play before picking one; every mini-game, bought, in the Mini-Game
+  House; what the Mushroom Shop sells once; and the Mini-Game House's and Option House's extras. Your save keeps only
+  what you have earned, so back on Original the game is as you left it.
+
 ## Mods
 
 The desktop build loads N64Recomp mods (`.nrm`) made for it (`game_id = "marioparty"`): in the launcher, before Start
