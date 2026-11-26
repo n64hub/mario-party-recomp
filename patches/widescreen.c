@@ -602,18 +602,26 @@ s32 widescreen_blooper_gone(omObjData* blooper, s32 player, s32 past_4x3) {
 // picture's; a wider picture showed black past them, the frame's clear: at the top left beside the start's ramp as
 // READY and GO show, and at the top right beyond its far corner as the players go on. The bridge, the start and the
 // goal are models of their own, and the lava's square is laid under them. us.toml's hook calls this once the setup has
-// made it: the square larger in x and z by 3 times what the picture is wider than 4:3 by (twice its size at 16:9, 5
+// made it: the square larger in x and z by 3 times what the picture is wider than 4:3 by (twice its size at 16:9, 6
 // times at 32:9), and its vertices' texture coordinates as many times further from their middle, so its lava keeps the
 // size it had as it reaches the wider picture's corners. The vertices are in each of the model's buffers (it repeats one in every
 // slot); a coordinate stays inside the 16 bits it is kept in, the square no larger than that allows. At 4:3 it keeps
 // its size.
+//
+// The times are a whole number, the next one up (3 at 1.9:1, a 4096x2160 window). Each of the square's 6x6 tiles has
+// texture coordinates of its own, 0 to 42.7 texels across it, and a tile's edge meets its neighbour's 32 texels on, one
+// whole repeat of the 32x32 lava, so the pattern runs on across it. Scaled 2.27 times, that step was 72.5 texels, and at
+// every tile's edge the lava's pattern broke off in a straight line, a grid of seams across the lava.
 #define SKATE_LAVA_MORE 3.0f
 #define SKATE_LAVA_LIST_LONGEST 128
 #define CMD_VTX_SKATE 0x01u
 #define CMD_ENDDL_SKATE 0xDFu
 
 static f32 skate_lava_factor(void) {
-    return 1.0f + SKATE_LAVA_MORE * (mp_aspect_ratio() * (3.0f / 4.0f) - 1.0f);
+    f32 k = 1.0f + SKATE_LAVA_MORE * (mp_aspect_ratio() * (3.0f / 4.0f) - 1.0f);
+
+    // 16:9's 2 may come out a hair over 2 in floats: that is still 2.
+    return k <= 1.001f ? 1.0f : (f32)((s32)(k - 0.001f) + 1);
 }
 
 // The number of vertices the model's lists draw from, the highest G_VTX's first and count.
@@ -678,8 +686,9 @@ void widescreen_skate_lava(omObjData* camera) {
             }
             middle = (lo + hi) * 0.5f;
             half = (hi - lo) * 0.5f;
+            // Down to a whole number, as skate_lava_factor's.
             if (half > 0.0f && (32767.0f - (middle < 0.0f ? -middle : middle)) / half < k) {
-                k = (32767.0f - (middle < 0.0f ? -middle : middle)) / half;
+                k = (f32)(s32)((32767.0f - (middle < 0.0f ? -middle : middle)) / half);
             }
         }
     }
@@ -703,7 +712,7 @@ void widescreen_skate_lava(omObjData* camera) {
         for (axis = 0; axis < 2; axis++) {
             s32 lo = 0x7FFF;
             s32 hi = -0x8000;
-            f32 middle;
+            s32 middle;
 
             for (v = 0; v < count; v++) {
                 s16 st = axis == 0 ? buffer[v].unk_08 : buffer[v].unk_0A;
@@ -711,11 +720,12 @@ void widescreen_skate_lava(omObjData* camera) {
                 lo = st < lo ? st : lo;
                 hi = st > hi ? st : hi;
             }
-            middle = (lo + hi) * 0.5f;
+            // In whole units, so every two coordinates end exactly k times as far apart.
+            middle = (lo + hi) / 2;
             for (v = 0; v < count; v++) {
                 s16* st = axis == 0 ? &buffer[v].unk_08 : &buffer[v].unk_0A;
 
-                *st = (s16)(s32)(middle + (*st - middle) * k);
+                *st = (s16)(middle + (*st - middle) * (s32)k);
             }
         }
     }
