@@ -39,7 +39,9 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   Windows and Linux both, which the work that fixed it sees out and names in its answer.
 - The scope is the game as it plays, plus what a web page needs (RT64 interpolation to the display's rate, resolution
   Auto), plus modern enhancements: each an option with an Original value that plays as the console does, none
-  changing how the game plays. USA only.
+  changing how the game plays. A very simple one needs no option: a small patch that takes away a glitch of the
+  game's own drawing nobody would miss, such as a frame drawn wrong between two pictures (Board Select's TV static
+  at its full size from its first frame). USA only.
 - The code the Mario Party recomps share is `lib/mario-party-engine` (n64hub/mario-party-engine): the process
   scheduler's patches and natives and `gen_syms.py`, written once against this game's names in
   `patches/engine_names.h`. A change to it is a commit there that each game's submodule moves onto, and code this game
