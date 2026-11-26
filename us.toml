@@ -23,6 +23,21 @@ renamed = [
     "PlaySound",
 ]
 
+# A board's three display lists hold 0x2004 commands each, as a minigame's do, in place of the 0x1000 omOvlGotoEx asks
+# for on a board (with 0x800 of the units at 0x800F6500 in place of a minigame's 0x1000: func_80060E20's sizes, which
+# func_8002B4C0 allocates each list by, from the board's heap). The game checks a list's room only as it draws models,
+# not sprites, and the engine adds commands to the game's own for the window's sides, so a board's frame came close to
+# 0x1000 by itself (31,504 of its 32,768 bytes on a plain board frame in a 4095x2160 window), and the 4 PLAYER GAME VS
+# screen and the roulette over it wrote past the list's end into the next heap block, which the game then crashed on
+# as it next allocated (HuMemMemoryAlloc). The 98 KB more come from the board's heap, of whose 1.7 MB DK's Jungle
+# Adventure left at least 460 KB free through a turn to that screen. Set here, where the lists are allocated, and not
+# in func_80060E20's stored sizes, which omOvlGotoEx compares with a board's on each overlay change to tell whether to
+# allocate them again.
+[[patches.hook]]
+func = "func_8002B4C0"
+before_vram = 0x8002B4C0
+text = "if (((ctx->r6 & 0xFFFF) == 0x800) && ((ctx->r7 & 0xFFFF) == 0x1000)) { ctx->r7 = 0x2004; }"
+
 # The survey (patches/survey.c): the overlay a script asked for, in place of the one the game goes to.
 [[patches.hook]]
 func = "omOvlGotoEx"
