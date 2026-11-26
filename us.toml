@@ -391,6 +391,42 @@ func = "func_8002D614"
 before_vram = 0x8002DA80
 text = "{ void mp_model_pop(uint8_t*, gpr); mp_model_pop(rdram, (gpr)(int32_t)0x800F37DC); }"
 
+# A course's parts tagged too (n64hub/mario-party-recomp#196): func_80029DB8, func_8002A0E4 and func_8002A92C draw a
+# minigame's course for a camera before the models' walk (func_8002A0E4 is ovlman.c's, through func_8001D8A0; Bobsled
+# Run's walls and track are its six models), each of the cells near the camera's view through func_8002D2CC, all at
+# one matrix. func_800247FC calls the course draw from 0x80024B4C and 0x80024B74 with the camera (s3) in a2, which the
+# draw doesn't read (0x800ED52C, whose matrix it draws at, is the frame's next free matrix, not a camera).
+# mp_model_course as each starts, with that camera, and mp_model_course_end before its one return.
+[[patches.hook]]
+func = "func_80029DB8"
+before_vram = 0x80029DB8
+text = "{ void mp_model_course(uint8_t*, int32_t); mp_model_course(rdram, (int32_t)(ctx->r6 & 0xFF)); }"
+
+[[patches.hook]]
+func = "func_80029DB8"
+before_vram = 0x8002A0DC
+text = "{ void mp_model_course_end(uint8_t*); mp_model_course_end(rdram); }"
+
+[[patches.hook]]
+func = "func_8002A0E4"
+before_vram = 0x8002A0E4
+text = "{ void mp_model_course(uint8_t*, int32_t); mp_model_course(rdram, (int32_t)(ctx->r6 & 0xFF)); }"
+
+[[patches.hook]]
+func = "func_8002A0E4"
+before_vram = 0x8002A77C
+text = "{ void mp_model_course_end(uint8_t*); mp_model_course_end(rdram); }"
+
+[[patches.hook]]
+func = "func_8002A92C"
+before_vram = 0x8002A92C
+text = "{ void mp_model_course(uint8_t*, int32_t); mp_model_course(rdram, (int32_t)(ctx->r6 & 0xFF)); }"
+
+[[patches.hook]]
+func = "func_8002A92C"
+before_vram = 0x8002ACFC
+text = "{ void mp_model_course_end(uint8_t*); mp_model_course_end(rdram); }"
+
 # Platform Peril's fallen platforms hidden once parked (patches/widescreen.c, widescreen_platform_parked): the end of
 # each of its platforms' two frame functions, with the platform's object in s2. The game's registers are kept around
 # the call, which is made between two of its instructions.
