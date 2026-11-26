@@ -472,3 +472,15 @@ text = "{ void cast_aways_item_gone_left(uint8_t*, recomp_context*); recomp_cont
 func = "func_800F76B8_CastAways"
 before_vram = 0x800F79BC
 text = "{ void cast_aways_item_spawned(uint8_t*, recomp_context*); recomp_context c = *ctx; c.r4 = ctx->r18; c.r5 = ctx->r19; cast_aways_item_spawned(rdram, &c); }"
+
+# Board Select's TV static at the size it has every other frame from the frame it shows (n64hub/mario-party-recomp#179).
+# On a board change, func_800FD804_AdventureModeSetup sets the static (the TV object's model[1]) to the object's own
+# scale, (0.45, 0.5, 0.45), shows it and sleeps 10 frames; the object's frame function, func_800FE68C, sets it to
+# 1.1 times the x scale, 0.495 each way, from the next frame on. For that one frame the static sits inside the TV's
+# dark plate, which hides the board's picture with no static in front of it. Once the game has set it (s1 is the
+# object: its models' indexes at the pointer at 0x40, its x scale at 0x30), this sets it again as the frame function
+# does.
+[[patches.hook]]
+func = "func_800FD804_AdventureModeSetup"
+before_vram = 0x800FDDFC
+text = "{ union { uint32_t u; float f; } s; s.u = (uint32_t)MEM_W(0x30, ctx->r17); s.f *= 1.1f; ctx->r4 = MEM_H(0x2, (gpr)(int32_t)MEM_W(0x40, ctx->r17)); ctx->r5 = ctx->r6 = ctx->r7 = (int32_t)s.u; func_80025830(rdram, ctx); }"
