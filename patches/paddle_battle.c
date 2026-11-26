@@ -2,30 +2,229 @@
 
 // Paddle Battle (overlay 0x33), two things in what it draws: its river's joins and its shafts of sunlight.
 //
-// Its river's water, four models one after another down the course (file 0x2089, a
-// translucent surface the game draws without writing depth), which its setup (func_800FBC00_PaddleBattle) places from
-// a table of heights and depths: (0, 7500), (0, 2500), (0, -2497), (-3, -7485). Their edges miss each other by a unit
-// or two: the second's and third's first edges are 1 unit lower than the last edge of the one before, the fourth's 1
-// unit higher, and the second's starts 2 units down the course from the first's end, the fourth's 2 units up from the
-// third's. Seen from above, the two surfaces at a join lie over each other in a thin band where both blends show, a
-// bright line across the river that the N64's 240 lines hid and a window's resolution shows.
+// Its river is in four sections one after another down the course, each two models: the ground (the river bed, its
+// banks and the boulders on them, drawn opaque) and the water over it (file 0x2089, a translucent surface the game draws
+// without writing depth). Its setup (func_800FBC00_PaddleBattle) places them from tables of heights and depths, the
+// grounds at (0, 7500), (0, 2500), (0, -2495), (0, -7490) and the waters at (0, 7500), (0, 2500), (0, -2497),
+// (-3, -7485), and their edges miss each other by a few units. The waters' by a unit or two: the second's and third's
+// first edges are 1 unit lower than the last edge of the one before, the fourth's 1 unit higher, and the second's
+// starts 2 units down the course from the first's end, the fourth's 2 units up from the third's; where two overlap,
+// both blends show. The grounds' by up to 8: the second's first edge stops 5 units down the course from the first's
+// last, right through a boulder in the middle of the river, and the third's and fourth's bed and banks start a few
+// units to the side of the one before. Through each gap the sky shows, and through the water over it, as a thin bright
+// line straight across the river: the N64's 240 lines hid it, a window's resolution shows it.
 //
-// us.toml's hook calls this once the setup has placed the four, and moves each after the first so its first edge meets
-// the last edge of the one before it, as that one has moved (measured in the running game).
+// us.toml's hook calls this once the setup has placed the eight. It moves each water after the first so its first edge
+// meets the last edge of the one before it, as that one has moved (measured in the running game), then makes each
+// join exact: every vertex of a section within 12 units of one of the section before it, ground to ground and water to
+// water, is put on that one, in each of its model's buffers (the game steps through a water's buffers as it flows and
+// writes only their texture coordinates; a ground has one). A section's own vertices are further apart than that.
 
-// Each section's move, up the course (z) and up (y). The first stays where it is.
+// Each water's move, up the course (z) and up (y). The first stays where it is.
 static const f32 river_moves[4][2] = { { 0.0f, 0.0f }, { 2.0f, 1.0f }, { 2.0f, 2.0f }, { 0.0f, 1.0f } };
 
-// The water's models are the object's fifth to eighth.
-#define RIVER_FIRST 4
+// The river object's first four models are the grounds, the next four the waters, each down the course.
+#define RIVER_GROUND 0
+#define RIVER_WATER 4
+#define RIVER_SECTIONS 4
+// How far a ground's place may be from its water's for the two to be taken as one section.
+#define SECTION_NEAR 10.0f
+
+// The display list commands a section's vertices are found by: the G_MOVEWORD that sets segment 1 to the model's
+// buffer, which opens each of its lists, G_VTX, G_SETPRIMCOLOR (only the water's lists set one) and G_ENDDL.
+#define CMD_SEGMENT_FIRST 0xDB0A0000u
+#define CMD_VTX 0x01u
+#define CMD_SETPRIMCOLOR 0xFAu
+#define CMD_ENDDL 0xDFu
+// A ground has up to 1230 vertices in about 30 lists, a water fewer than 140 in 5 to 7.
+#define SECTION_LISTS 64
+#define SECTION_LIST_LONGEST 1024
+#define SECTION_VERTICES 1536
+// How far a vertex may be from one of the section before it to be put on it.
+#define JOIN_REACH 12.0f
+
+static s32 in_rdram(void* p) {
+    return ((u32)p >> 24) == 0x80;
+}
+
+// Marks in drawn the vertices of the model's buffers its display lists draw (not the 8 corners of each list's bounding
+// box, the first G_VTX of a list, which the game loads for G_CULLDL), says whether a list sets a primitive colour, and
+// returns how far the vertices reach. The list array ends at an entry that is no list.
+static s32 section_drawn(unk2C0C0StructC0* data, u8* drawn, s32* translucent) {
+    s32 reach = 0;
+    s32 i;
+    s32 c;
+    s32 v;
+
+    bzero(drawn, SECTION_VERTICES);
+    *translucent = FALSE;
+    if (!in_rdram(data) || !in_rdram(data->unk_00)) {
+        return 0;
+    }
+    for (i = 0; i < SECTION_LISTS; i++) {
+        u32* list = (u32*)data->unk_00[i];
+        s32 boxed = FALSE;
+
+        if (!in_rdram(list) || (u32)list == (u32)data->unk_00 || list[0] != CMD_SEGMENT_FIRST) {
+            break;
+        }
+        for (c = 0; c < SECTION_LIST_LONGEST && (list[c * 2] >> 24) != CMD_ENDDL; c++) {
+            u32 w0 = list[c * 2];
+            u32 w1 = list[c * 2 + 1];
+
+            if ((w0 >> 24) == CMD_SETPRIMCOLOR) {
+                *translucent = TRUE;
+            } else if ((w0 >> 24) == CMD_VTX && (w1 >> 24) == 0x01) {
+                // F3DEX2's G_VTX: the count in bits 12 to 19, the vertices from segment 1 (the model's buffer) at the
+                // offset in w1's low 24 bits.
+                s32 count = (w0 >> 12) & 0xFF;
+                s32 first = (w1 & 0xFFFFFF) / sizeof(unk2C0C0StructE0);
+
+                if (!boxed) {
+                    boxed = TRUE;
+                    continue;
+                }
+                for (v = first; v < first + count && v < SECTION_VERTICES; v++) {
+                    drawn[v] = TRUE;
+                }
+                if (v > reach) {
+                    reach = v;
+                }
+            }
+        }
+    }
+    return reach;
+}
+
+static s16 rounded(f32 x) {
+    return (s16)(s32)(x < 0.0f ? x - 0.5f : x + 0.5f);
+}
+
+// Puts each drawn vertex of down within JOIN_REACH of a drawn vertex of up (the section before it) on the nearest, in
+// each of down's buffers, once each: a model repeats its last buffer in the slots it doesn't use.
+static void join_made_exact(unk_ovl_2D_struct* up, unk_ovl_2D_struct* down) {
+    static u8 up_drawn[SECTION_VERTICES];
+    static u8 down_drawn[SECTION_VERTICES];
+    unk2C0C0StructE0* a;
+    unk2C0C0StructE0* b;
+    s32 translucent;
+    s32 up_reach;
+    s32 down_reach;
+    s32 v;
+    s32 w;
+    s32 i;
+    s32 j;
+
+    up_reach = section_drawn(up->unk_6C, up_drawn, &translucent);
+    down_reach = section_drawn(down->unk_6C, down_drawn, &translucent);
+    if (up_reach == 0 || down_reach == 0 || !in_rdram(up->unk_6C->unk_08[0]) || !in_rdram(down->unk_6C->unk_08[0])) {
+        return;
+    }
+    a = up->unk_6C->unk_08[0];
+    b = down->unk_6C->unk_08[0];
+    for (v = 0; v < down_reach; v++) {
+        f32 x;
+        f32 y;
+        f32 z;
+        f32 nearest = SQ(JOIN_REACH);
+        s32 on = -1;
+
+        if (!down_drawn[v]) {
+            continue;
+        }
+        x = b[v].unk_00 + down->unk_24;
+        y = b[v].unk_02 + down->unk_28;
+        z = b[v].unk_04 + down->unk_2C;
+        for (w = 0; w < up_reach; w++) {
+            f32 d;
+
+            if (!up_drawn[w]) {
+                continue;
+            }
+            d = SQ(a[w].unk_00 + up->unk_24 - x) + SQ(a[w].unk_02 + up->unk_28 - y) + SQ(a[w].unk_04 + up->unk_2C - z);
+            if (d > 0.0f && d < nearest) {
+                nearest = d;
+                on = w;
+            }
+        }
+        if (on < 0) {
+            continue;
+        }
+        x = a[on].unk_00 + up->unk_24 - down->unk_24;
+        y = a[on].unk_02 + up->unk_28 - down->unk_28;
+        z = a[on].unk_04 + up->unk_2C - down->unk_2C;
+        for (i = 0; i < ARRAY_COUNT(down->unk_6C->unk_08); i++) {
+            unk2C0C0StructE0* buffer = down->unk_6C->unk_08[i];
+
+            if (!in_rdram(buffer)) {
+                continue;
+            }
+            for (j = 0; j < i; j++) {
+                if (down->unk_6C->unk_08[j] == buffer) {
+                    break;
+                }
+            }
+            if (j == i) {
+                buffer[v].unk_00 = rounded(x);
+                buffer[v].unk_02 = rounded(y);
+                buffer[v].unk_04 = rounded(z);
+            }
+        }
+    }
+}
+
+// The river object's grounds, down the course, if its first four models are four opaque sections each at its water's
+// place; else NULL in the first.
+static void grounds_found(omObjData* river, unk_ovl_2D_struct** grounds) {
+    static u8 drawn[SECTION_VERTICES];
+    s32 translucent;
+    s32 i;
+    s32 j;
+
+    for (i = 0; i < RIVER_SECTIONS; i++) {
+        grounds[i] = &D_800F2B7C[river->model[RIVER_GROUND + i]];
+        if (section_drawn(grounds[i]->unk_6C, drawn, &translucent) == 0 || translucent) {
+            grounds[0] = NULL;
+            return;
+        }
+    }
+    // Down the course is down z: sorted so, then each matched with its water.
+    for (i = 1; i < RIVER_SECTIONS; i++) {
+        for (j = i; j > 0 && grounds[j]->unk_2C > grounds[j - 1]->unk_2C; j--) {
+            unk_ovl_2D_struct* t = grounds[j];
+
+            grounds[j] = grounds[j - 1];
+            grounds[j - 1] = t;
+        }
+    }
+    for (i = 0; i < RIVER_SECTIONS; i++) {
+        f32 d = grounds[i]->unk_2C - D_800F2B7C[river->model[RIVER_WATER + i]].unk_2C;
+
+        if (d > SECTION_NEAR || d < -SECTION_NEAR) {
+            grounds[0] = NULL;
+            return;
+        }
+    }
+}
 
 void paddle_battle_river_joined(omObjData* river) {
+    unk_ovl_2D_struct* grounds[RIVER_SECTIONS];
     s32 i;
 
-    for (i = 1; i < 4; i++) {
-        unk_ovl_2D_struct* water = &D_800F2B7C[river->model[RIVER_FIRST + i]];
+    for (i = 0; i < RIVER_SECTIONS; i++) {
+        unk_ovl_2D_struct* water = &D_800F2B7C[river->model[RIVER_WATER + i]];
+
         water->unk_2C += river_moves[i][0];
         water->unk_28 += river_moves[i][1];
+    }
+    for (i = 1; i < RIVER_SECTIONS; i++) {
+        join_made_exact(&D_800F2B7C[river->model[RIVER_WATER + i - 1]], &D_800F2B7C[river->model[RIVER_WATER + i]]);
+    }
+    grounds_found(river, grounds);
+    if (grounds[0] != NULL) {
+        for (i = 1; i < RIVER_SECTIONS; i++) {
+            join_made_exact(grounds[i - 1], grounds[i]);
+        }
     }
 }
 
@@ -49,13 +248,11 @@ void paddle_battle_river_joined(omObjData* river) {
 #define LIGHT_SIZE 16
 #define LIGHT_COLOR 0xFE
 #define LIGHT_WIDER 1.5f
-// The display list commands that find the light: its G_SETTIMG (IA, 16-bit), its tile's size (16x16) and the four
-// vertices it is drawn with.
+// The display list commands that find the light: its G_SETTIMG (IA, 16-bit) and its tile's size (16x16), then (with
+// G_VTX, above) the four vertices it is drawn with.
 #define CMD_SETTIMG_IA16 0xFD700000u
 #define CMD_SETTILESIZE 0xF2000000u
 #define LIGHT_TILE_SIZE 0x0003C03Cu
-#define CMD_VTX 0x01u
-#define CMD_ENDDL 0xDFu
 // The light's model has two display lists, the dust's and the light's, each about 24 commands long.
 #define SHAFT_LISTS 2
 #define LIST_LONGEST 64
