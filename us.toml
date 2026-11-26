@@ -327,8 +327,9 @@ func = "func_800FB238_MushroomMixup"
 before_vram = 0x800FB9E8
 text = "{ void widescreen_blooper_gone(uint8_t*, recomp_context*); recomp_context saved = *ctx; ctx->r4 = ctx->r18; ctx->r5 = ctx->r19; ctx->r6 = ctx->r3; widescreen_blooper_gone(rdram, ctx); saved.r3 = ctx->r2; *ctx = saved; }"
 
-# Paddle Battle's river: its four water sections moved so their edges meet (patches/paddle_battle.c), once its setup
-# (func_800FBC00_PaddleBattle) has placed the last, with its object in s2. The game's registers are kept around the call.
+# Paddle Battle's river: its four water sections moved so their edges meet, and the joins of its waters and of its
+# grounds made exact (patches/paddle_battle.c), once its setup (func_800FBC00_PaddleBattle) has placed the last, with
+# its object in s2. The game's registers are kept around the call.
 [[patches.hook]]
 func = "func_800FBC00_PaddleBattle"
 before_vram = 0x800FBE14
