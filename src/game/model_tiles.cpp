@@ -35,6 +35,17 @@
 // each picture's first quarter and FFFFFF for its bottom right one, which draws brighter than the quarter above it,
 // a line across the picture's right half that the console draws too. So a batch of a later picture of the part, where
 // it meets one before it, has its light colours set as the part's first picture's were, and every quarter is lit alike.
+//
+// A minigame's instructions screen has a soft cloud behind its title (form file 0xB0004), bobbing up and down: a glow
+// and five triangles of a 32x32 RGBA32 puff, each with a flat bottom edge across it. The puff fades to clear at its
+// bottom (row 29's alpha 62, row 30's 35, row 31's 0), but the triangles' bottoms end on it at t 30.03 to 31.16, where
+// it is still 14 to 24% opaque, so each is cut off straight where it can still be seen. Above the console's resolution
+// the cuts show as a band with a hard top under the title, moving with the cloud. And at t 30.03 (a sixteenth past row
+// 30's edge) the clamp above took the last triangle's tile to rows 0 to 29, holding row 29's alpha down to its bottom
+// edge. So while that file is made (us.toml's hooks around the instructions setup's LoadFormFile call for it), a
+// batch's vertex whose t lies on its tile's last two rows, short of the last row's middle, is moved to that middle,
+// where the puff is clear: the cloud fades out before its edges, which stay where they were, its puff a texel and a
+// half taller at most.
 
 #include "recomp.h"
 #include "librecomp/helpers.hpp"
@@ -58,6 +69,9 @@ namespace {
     // texel short (Crazy Cutter's middle cone's quad ends at t 31.88), a sixteenth past.
     constexpr int32_t SHORT_OF_EDGE = 4;
     constexpr int32_t PAST_EDGE = 2;
+
+    // Whether the instructions screen's title cloud (form file 0xB0004) is being made.
+    bool title_cloud = false;
 
     gpr batch_start = 0;        // the DL head when the batch started
 
@@ -415,6 +429,11 @@ namespace {
     }
 }
 
+// The instructions setup about to make its title cloud (form file 0xB0004), and back from it (above).
+extern "C" void mp_model_title_cloud(uint8_t* rdram, int32_t making) {
+    title_cloud = making != 0;
+}
+
 // At func_8002E488's start: where the batch's commands start, and whether the tile tracked is still the stream's.
 extern "C" void mp_model_batch_start(uint8_t* rdram) {
     batch_start = (gpr)(int32_t)MEM_W(0, DL_HEAD);
@@ -496,6 +515,12 @@ extern "C" void mp_model_batch_end(uint8_t* rdram) {
     int32_t first = MEM_H(0, BATCH_FIRST), last = MEM_H(0, BATCH_END);
     for (int32_t i = first; i < last; i++) {
         int32_t s = MEM_H(8, vertices + i * 16), t = MEM_H(10, vertices + i * 16);
+        // The title cloud's bottom edges moved to the middle of its puff's last row, where it is clear (above).
+        int32_t clear = tile.last_t * 32 + 16;
+        if (title_cloud && tile.clamp_t && t >= (tile.last_t - 1) * 32 && t < clear) {
+            t = clear;
+            MEM_H(10, vertices + i * 16) = (int16_t)t;
+        }
         if (!tile.any || s > tile.reach_s) {
             tile.reach_s = s;
         }

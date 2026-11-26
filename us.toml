@@ -206,6 +206,19 @@ text = "{ gpr mp_instructions_form_flags(uint8_t*, gpr, gpr); gpr mp_huge_form_f
 
 # A minigame's instructions screen past 4:3 (patches/instructions.c says how): after its setup has placed and scaled
 # each of the two strips of cloud along the bottom (form 0xB000A, then 0xB000B, each in s0), a copy of it on each side.
+# A minigame's instructions screen's soft cloud behind its title (form file 0xB0004) fades out before its triangles'
+# flat bottom edges (src/game/model_tiles.cpp says why): its setup makes it in LoadFormFile(0xB0004, 0x289), from the
+# jal (which L_800F6F28 reaches either way) to the instruction after its delay slot.
+[[patches.hook]]
+func = "func_800F6B14_MinigameInstructions"
+before_vram = 0x800F6F2C
+text = "{ void mp_model_title_cloud(uint8_t*, int32_t); mp_model_title_cloud(rdram, 1); }"
+
+[[patches.hook]]
+func = "func_800F6B14_MinigameInstructions"
+before_vram = 0x800F6F34
+text = "{ void mp_model_title_cloud(uint8_t*, int32_t); mp_model_title_cloud(rdram, 0); }"
+
 [[patches.hook]]
 func = "func_800F6B14_MinigameInstructions"
 before_vram = 0x800F6DFC
@@ -314,8 +327,9 @@ func = "func_800FB238_MushroomMixup"
 before_vram = 0x800FB9E8
 text = "{ void widescreen_blooper_gone(uint8_t*, recomp_context*); recomp_context saved = *ctx; ctx->r4 = ctx->r18; ctx->r5 = ctx->r19; ctx->r6 = ctx->r3; widescreen_blooper_gone(rdram, ctx); saved.r3 = ctx->r2; *ctx = saved; }"
 
-# Paddle Battle's river: its four water sections moved so their edges meet (patches/paddle_battle.c), once its setup
-# (func_800FBC00_PaddleBattle) has placed the last, with its object in s2. The game's registers are kept around the call.
+# Paddle Battle's river: its four water sections moved so their edges meet, and the joins of its waters and of its
+# grounds made exact (patches/paddle_battle.c), once its setup (func_800FBC00_PaddleBattle) has placed the last, with
+# its object in s2. The game's registers are kept around the call.
 [[patches.hook]]
 func = "func_800FBC00_PaddleBattle"
 before_vram = 0x800FBE14
@@ -377,6 +391,23 @@ text = "{ gpr mp_model_push(uint8_t*, gpr, int32_t, gpr, int32_t, gpr, int32_t);
 func = "func_8002D614"
 before_vram = 0x8002DA80
 text = "{ void mp_model_pop(uint8_t*, gpr); mp_model_pop(rdram, (gpr)(int32_t)0x800F37DC); }"
+
+# Coin Block Bash's effects (the coins that burst from a block, puffs, sparks, chips and shadows) paired with their
+# own between the game's frames (lib/mario-party-engine/src/model_ids.cpp, mp_effect_push, says how).
+# func_80101748_CoinBlockBash draws its table of them (0x38 bytes each, from the word at 0x80103298), its slot in s3 and
+# its entry in s1, its place at 0x20: each slot's gSPMatrix at s0 from 0x801019B4, its display list at s2 after it, then
+# the next slot from 0x801019E8. The list (from the word at 0x8010325C) has 0xA0 bytes a slot, and a slot draws 24 at
+# most, so the tags fit. An effect goes at most 50 units a frame from where its step goes on to, a slot handed on to a
+# new one 70 or more.
+[[patches.hook]]
+func = "func_80101748_CoinBlockBash"
+before_vram = 0x801019B4
+text = "{ gpr mp_effect_push(uint8_t*, gpr, uint32_t, gpr, float, int32_t); ctx->r16 = mp_effect_push(rdram, ctx->r16, (0x15u << 8) | (uint32_t)(uint8_t)ctx->r19, ctx->r17 + 0x20, 60.0f, (int32_t)MEM_W(0, (gpr)(int32_t)0x800F3848)); ctx->r18 = ctx->r16 + 8; }"
+
+[[patches.hook]]
+func = "func_80101748_CoinBlockBash"
+before_vram = 0x801019E8
+text = "{ gpr mp_effect_pop(uint8_t*, gpr); ctx->r18 = mp_effect_pop(rdram, ctx->r18); }"
 
 # Platform Peril's fallen platforms hidden once parked (patches/widescreen.c, widescreen_platform_parked): the end of
 # each of its platforms' two frame functions, with the platform's object in s2. The game's registers are kept around
@@ -459,3 +490,15 @@ text = "{ void cast_aways_item_gone_left(uint8_t*, recomp_context*); recomp_cont
 func = "func_800F76B8_CastAways"
 before_vram = 0x800F79BC
 text = "{ void cast_aways_item_spawned(uint8_t*, recomp_context*); recomp_context c = *ctx; c.r4 = ctx->r18; c.r5 = ctx->r19; cast_aways_item_spawned(rdram, &c); }"
+
+# Board Select's TV static at the size it has every other frame from the frame it shows (n64hub/mario-party-recomp#179).
+# On a board change, func_800FD804_AdventureModeSetup sets the static (the TV object's model[1]) to the object's own
+# scale, (0.45, 0.5, 0.45), shows it and sleeps 10 frames; the object's frame function, func_800FE68C, sets it to
+# 1.1 times the x scale, 0.495 each way, from the next frame on. For that one frame the static sits inside the TV's
+# dark plate, which hides the board's picture with no static in front of it. Once the game has set it (s1 is the
+# object: its models' indexes at the pointer at 0x40, its x scale at 0x30), this sets it again as the frame function
+# does.
+[[patches.hook]]
+func = "func_800FD804_AdventureModeSetup"
+before_vram = 0x800FDDFC
+text = "{ union { uint32_t u; float f; } s; s.u = (uint32_t)MEM_W(0x30, ctx->r17); s.f *= 1.1f; ctx->r4 = MEM_H(0x2, (gpr)(int32_t)MEM_W(0x40, ctx->r17)); ctx->r5 = ctx->r6 = ctx->r7 = (int32_t)s.u; func_80025830(rdram, ctx); }"
