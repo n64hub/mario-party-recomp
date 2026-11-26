@@ -392,6 +392,23 @@ func = "func_8002D614"
 before_vram = 0x8002DA80
 text = "{ void mp_model_pop(uint8_t*, gpr); mp_model_pop(rdram, (gpr)(int32_t)0x800F37DC); }"
 
+# Coin Block Bash's effects (the coins that burst from a block, puffs, sparks, chips and shadows) paired with their
+# own between the game's frames (lib/mario-party-engine/src/model_ids.cpp, mp_effect_push, says how).
+# func_80101748_CoinBlockBash draws its table of them (0x38 bytes each, from the word at 0x80103298), its slot in s3 and
+# its entry in s1, its place at 0x20: each slot's gSPMatrix at s0 from 0x801019B4, its display list at s2 after it, then
+# the next slot from 0x801019E8. The list (from the word at 0x8010325C) has 0xA0 bytes a slot, and a slot draws 24 at
+# most, so the tags fit. An effect goes at most 50 units a frame from where its step goes on to, a slot handed on to a
+# new one 70 or more.
+[[patches.hook]]
+func = "func_80101748_CoinBlockBash"
+before_vram = 0x801019B4
+text = "{ gpr mp_effect_push(uint8_t*, gpr, uint32_t, gpr, float, int32_t); ctx->r16 = mp_effect_push(rdram, ctx->r16, (0x15u << 8) | (uint32_t)(uint8_t)ctx->r19, ctx->r17 + 0x20, 60.0f, (int32_t)MEM_W(0, (gpr)(int32_t)0x800F3848)); ctx->r18 = ctx->r16 + 8; }"
+
+[[patches.hook]]
+func = "func_80101748_CoinBlockBash"
+before_vram = 0x801019E8
+text = "{ gpr mp_effect_pop(uint8_t*, gpr); ctx->r18 = mp_effect_pop(rdram, ctx->r18); }"
+
 # Platform Peril's fallen platforms hidden once parked (patches/widescreen.c, widescreen_platform_parked): the end of
 # each of its platforms' two frame functions, with the platform's object in s2. The game's registers are kept around
 # the call, which is made between two of its instructions.
