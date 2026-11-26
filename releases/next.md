@@ -4,3 +4,4 @@
 - On the Board Selection screen, changing boards now goes straight from the board's picture to the TV static. Before, the TV went dark for one frame in between, a flicker each time.
 - The launcher's main menu has a picture behind it, painted for the project by one of its players, with the title and the menu outlined so they read on it. It covers the window at any shape, cut at its sides in a narrower one.
 - In Skateboard Scamper in a wide window of any shape but exactly 16:9 (16:10, 21:9, or a 4096x2160 one), the lava now flows on as one surface. Before, a grid of straight seams ran across it, where the lava's pattern broke off.
+- In Paddle Battle, the river is now whole where its stretches meet. Before, a thin bright line ran straight across the water behind the raft, by the boulder in the middle of the river, plain in a big window.
