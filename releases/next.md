@@ -1,0 +1,1 @@
+- In a window wider than 4:3, the Nintendo 64, Nintendo and Hudson logos at startup are now drawn at their own shape in the middle, with black at the sides. Before, each was stretched to the window's width.
