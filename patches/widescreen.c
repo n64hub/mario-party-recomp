@@ -56,7 +56,10 @@ RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
 //   views' 3D.
 // - 0x81, the title: its picture, the logo and the characters on white, is a 2D picture of the screen's size.
 //   Stretched over a wide window, the characters and the logo were drawn as much wider as the window is.
-static const u8 overlays_4x3[] = { 0x01, 0x03, 0x04, 0x21, 0x30, 0x81 };
+// - 0x67 and 0x66, the logos at boot (Nintendo 64, Nintendo, Hudson), each on black: 0x67 is the scene the game
+//   starts with (gameman.c), and goes on to 0x66. Stretched over a wide window, each logo was drawn as much wider as
+//   the window is.
+static const u8 overlays_4x3[] = { 0x01, 0x03, 0x04, 0x21, 0x30, 0x66, 0x67, 0x81 };
 
 // The minigames whose 3D ends short of a wide window's edges, and the widest each is drawn, its width over its height:
 // where its stage, floor or sea ends at its narrowest across the minigame's play, at a 32:9 window. The engine draws one

@@ -1,1 +1,2 @@
+- In Teetering Towers, the full moon at the start and the end is one smooth picture again in a big window. Since v0.2.30, a line ran across it a quarter of the way down and another down its middle.
 - In Bumper Balls and Hammer Drop the sea now reaches the top of the screen. Before, a strip of the background (dark blue in Bumper Balls, black in Hammer Drop) showed above its far edge, which a TV's overscan used to hide.

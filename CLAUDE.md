@@ -95,7 +95,7 @@ This repo is the game: its recompilation, the patches over it, the desktop build
   the engine's `src/aspect_ratio.cpp`). A map no wider than 320 (the First Map's opening shot, 5x5 tiles) keeps black at
   its sides, the game having nothing beside it to draw, and its 3D and the HUD keep inside 4:3 with it (`board_back.c`),
   as they do in a scene the game draws at 4:3 (Chance Time, Buried Treasure, Treasure Divers, Tipsy Tourney, Deep Sea
-  Divers, the title: `patches/widescreen.c`'s list). A minigame whose 3D ends short of a wide window's edges (Mario
+  Divers, the boot logos, the title: `patches/widescreen.c`'s list). A minigame whose 3D ends short of a wide window's edges (Mario
   Bandstand's stage, Hammer Drop's sea) is drawn no wider than where it ends, `patches/widescreen.c`'s second list, with
   black bars only past that.
 - **The survey.** `patches/survey.c`, `src/game/survey.cpp` and `tools/survey.js` let a plan send the game to any
