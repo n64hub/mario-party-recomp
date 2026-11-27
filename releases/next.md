@@ -1,0 +1,1 @@
+- In Bumper Balls and Hammer Drop the sea now reaches the top of the screen. Before, a strip of the background (dark blue in Bumper Balls, black in Hammer Drop) showed above its far edge, which a TV's overscan used to hide.
