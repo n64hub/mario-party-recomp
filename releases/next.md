@@ -1,0 +1,1 @@
+- In Teetering Towers, the full moon at the start and the end is one smooth picture again in a big window. Since v0.2.30, a line ran across it a quarter of the way down and another down its middle.
