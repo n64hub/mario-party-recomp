@@ -1,1 +1,2 @@
 - In a window wider than 4:3, the Nintendo 64, Nintendo and Hudson logos at startup are now drawn at their own shape in the middle, with black at the sides. Before, each was stretched to the window's width.
+- In Teetering Towers, the full moon at the start and the end is one smooth picture again in a big window. Since v0.2.30, a line ran across it a quarter of the way down and another down its middle.
