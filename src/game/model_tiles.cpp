@@ -24,8 +24,9 @@
 // So where a batch's vertex lies where one of another texture of the part does, each at its texture's opposite edges
 // (one's t at its last row's far edge, the other's at 0, their s the same, or the same across), the two textures meet
 // there, and along the span such vertices share, the step between the two textures' colours at the join is spread over
-// the SPREAD texels either side of it, 2 SPREAD + 1 even steps where there was one, each texel's new colour from its
-// own palette (a CI8 texture with an RGBA16 one). Two quarters' palettes may have nothing between their colours (one
+// the SPREAD texels either side of it, 2 SPREAD even steps where there was one, the two texels at the join made one
+// colour exactly halfway (each tile clamped there, the filter draws each out to the join, so any step left between
+// them is a hard line, a texel wide where the picture is drawn big), each texel's new colour from its own palette (a CI8 texture with an RGBA16 one). Two quarters' palettes may have nothing between their colours (one
 // sky, the other ground), so a colour a palette lacks takes a slot no texture of the part drawn with it uses, or, with
 // none free, one of the palette's two nearest colours (never one a join made), every texel of it moved to the other, if
 // they are nearer each other than the colour wanted is to any, or no more than a step apart in each channel: texels
@@ -223,9 +224,10 @@ namespace {
     }
 
     // The index in p's palette for a colour (5 bits a channel) with alpha bit alpha: the nearest colour the texture
-    // draws with, or, if that is more than a step off in a channel, a slot given the colour itself (below).
+    // draws with, or, if that is more than a step off in a channel (exact: if it is off at all), a slot given the
+    // colour itself (below).
     int32_t colour_index(uint8_t* rdram, const Picture& p, const Picture& also, int32_t r, int32_t g, int32_t b,
-                         uint32_t alpha) {
+                         uint32_t alpha, bool exact) {
         Slots* s = slots_for(rdram, p, also);
         int32_t best = -1, best_d = 0;
         for (int32_t i = 0; i < p.colours; i++) {
@@ -241,7 +243,7 @@ namespace {
                 best_d = d;
             }
         }
-        if (s == nullptr || (best >= 0 && best_d <= 1)) {
+        if (s == nullptr || (best >= 0 && best_d <= (exact ? 0 : 1))) {
             return best;
         }
         int32_t slot = -1;
@@ -352,17 +354,29 @@ namespace {
             int32_t ar, ag, ab, br, bg, bb;
             rgba16_split(MEM_HU(ia[0] * 2, a.palette), ar, ag, ab);
             rgba16_split(MEM_HU(ib[0] * 2, b.palette), br, bg, bb);
-            // The step across the join spread over the texels either side: the one at it moves depth / (2 depth + 1)
-            // of the step toward the other side, the next one less, so the colours climb in 2 depth + 1 even steps.
+            // The step across the join spread over the texels either side: the two at it meet halfway, the next ones
+            // move less of the step toward the other side, so the colours climb in 2 depth even steps. Each texture's
+            // tile is clamped at the join, so the filter draws the texel at it out to the edge: the two must be one
+            // colour exactly, or what is left of the step is a hard line there (the Teetering Towers moon, a texel
+            // some 40 pixels wide at 3840x2000, showed one at a fifth of it).
             float dr = (float)(br - ar), dg = (float)(bg - ag), db = (float)(bb - ab);
             for (int32_t j = 0; j < depth; j++) {
-                float f = (float)(depth - j) / (float)(2 * depth + 1);
+                float f = (float)(depth - j) / (float)(2 * depth);
                 uint32_t ca = MEM_HU(ia[j] * 2, a.palette), cb = MEM_HU(ib[j] * 2, b.palette);
                 int32_t r, g, bl;
                 rgba16_split(ca, r, g, bl);
-                int32_t na = colour_index(rdram, a, b, channel(r + dr * f), channel(g + dg * f), channel(bl + db * f), ca & 1);
-                rgba16_split(cb, r, g, bl);
-                int32_t nb = colour_index(rdram, b, a, channel(r - dr * f), channel(g - dg * f), channel(bl - db * f), cb & 1);
+                int32_t na = colour_index(rdram, a, b, channel(r + dr * f), channel(g + dg * f), channel(bl + db * f), ca & 1,
+                                          j == 0);
+                int32_t nb;
+                if (j == 0 && na >= 0) {
+                    // b's texel at the join takes the colour a's got.
+                    rgba16_split(MEM_HU(na * 2, a.palette), r, g, bl);
+                    nb = colour_index(rdram, b, a, r, g, bl, cb & 1, true);
+                } else {
+                    rgba16_split(cb, r, g, bl);
+                    nb = colour_index(rdram, b, a, channel(r - dr * f), channel(g - dg * f), channel(bl - db * f), cb & 1,
+                                      j == 0);
+                }
                 if (na >= 0) {
                     MEM_B(at_a(j), a.texture) = (int8_t)na;
                 }
