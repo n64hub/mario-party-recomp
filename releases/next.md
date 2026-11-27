@@ -1,1 +1,0 @@
-- On a board, when a 4 PLAYER GAME mini-game is picked in a window wider than 4:3, the game now goes on to the roulette and the mini-game. Before, in v0.2.30, it could crash to the desktop as the roulette came up.
