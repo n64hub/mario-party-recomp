@@ -25,8 +25,10 @@
 // (one's t at its last row's far edge, the other's at 0, their s the same, or the same across), the two textures meet
 // there, and along the span such vertices share, the step between the two textures' colours at the join is spread over
 // the SPREAD texels either side of it, 2 SPREAD even steps where there was one, the two texels at the join made one
-// colour exactly halfway (each tile clamped there, the filter draws each out to the join, so any step left between
-// them is a hard line, a texel wide where the picture is drawn big), each texel's new colour from its own palette (a CI8 texture with an RGBA16 one). Two quarters' palettes may have nothing between their colours (one
+// colour exactly (each tile clamped there, the filter draws each out to the join, so any step left between them is a
+// hard line, a texel wide where the picture is drawn big): halfway, or, where a palette has no room for that, the
+// colour both palettes have that is nearest it. Each texel's new colour is from its own palette (a CI8 texture with an
+// RGBA16 one). Two quarters' palettes may have nothing between their colours (one
 // sky, the other ground), so a colour a palette lacks takes a slot no texture of the part drawn with it uses, or, with
 // none free, one of the palette's two nearest colours (never one a join made), every texel of it moved to the other, if
 // they are nearer each other than the colour wanted is to any, or no more than a step apart in each channel: texels
@@ -244,6 +246,10 @@ namespace {
             }
         }
         if (s == nullptr || (best >= 0 && best_d <= (exact ? 0 : 1))) {
+            if (exact && s != nullptr && best >= 0) {
+                // A join's texel at the join drawn with it: never merged away from its partner's colour.
+                s->made[best] = true;
+            }
             return best;
         }
         int32_t slot = -1;
@@ -295,6 +301,46 @@ namespace {
     int32_t channel(float v) {
         int32_t c = (int32_t)(v + (v < 0 ? -0.5f : 0.5f));
         return std::max(0, std::min(31, c));
+    }
+
+    // The colour (alpha bit alpha) both a's and b's palettes draw with that is nearest (r, g, b), its index in each in
+    // ia and ib, kept from merges; ia and ib as they were if the two share none.
+    void shared_colour(uint8_t* rdram, const Picture& a, const Picture& b, int32_t r, int32_t g, int32_t bl,
+                       uint32_t alpha, int32_t& ia, int32_t& ib) {
+        Slots* sa = slots_for(rdram, a, b);
+        Slots* sb = slots_for(rdram, b, a);
+        int32_t best_a = -1, best_b = -1, best_d = 0;
+        for (int32_t i = 0; i < a.colours; i++) {
+            uint32_t c = MEM_HU(i * 2, a.palette);
+            if ((sa != nullptr && !sa->used[i]) || (c & 1) != alpha) {
+                continue;
+            }
+            int32_t ir, ig, ib_;
+            rgba16_split(c, ir, ig, ib_);
+            int32_t d = distance(ir, ig, ib_, r, g, bl);
+            if (best_a >= 0 && d >= best_d) {
+                continue;
+            }
+            for (int32_t k = 0; k < b.colours; k++) {
+                if ((sb == nullptr || sb->used[k]) && MEM_HU(k * 2, b.palette) == c) {
+                    best_a = i;
+                    best_b = k;
+                    best_d = d;
+                    break;
+                }
+            }
+        }
+        if (best_a < 0) {
+            return;
+        }
+        ia = best_a;
+        ib = best_b;
+        if (sa != nullptr) {
+            sa->made[ia] = true;
+        }
+        if (sb != nullptr) {
+            sb->made[ib] = true;
+        }
     }
 
     // Where piece p's vertices lie on q's at their opposite edges, the texels either side of that join evened, along
@@ -369,9 +415,15 @@ namespace {
                                           j == 0);
                 int32_t nb;
                 if (j == 0 && na >= 0) {
-                    // b's texel at the join takes the colour a's got.
+                    // b's texel at the join takes the colour a's got; if b's palette can't have it (full, and no
+                    // two of its colours near enough to make one), the two take the colour both palettes have that
+                    // is nearest halfway.
+                    int32_t hr = channel(r + dr * f), hg = channel(g + dg * f), hb = channel(bl + db * f);
                     rgba16_split(MEM_HU(na * 2, a.palette), r, g, bl);
                     nb = colour_index(rdram, b, a, r, g, bl, cb & 1, true);
+                    if (nb < 0 || MEM_HU(nb * 2, b.palette) != MEM_HU(na * 2, a.palette)) {
+                        shared_colour(rdram, a, b, hr, hg, hb, ca & 1, na, nb);
+                    }
                 } else {
                     rgba16_split(cb, r, g, bl);
                     nb = colour_index(rdram, b, a, channel(r - dr * f), channel(g - dg * f), channel(bl - db * f), cb & 1,
