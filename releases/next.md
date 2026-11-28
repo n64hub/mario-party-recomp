@@ -1,0 +1,1 @@
+- In Cast Aways, the sky no longer has two hard straight lines across its clouds near the top of the screen. They were joins between the pieces the sky is drawn in, faint on a TV and sharp at a PC's resolution.
