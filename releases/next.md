@@ -1,0 +1,1 @@
+- In Crane Game, the claw's shadow on a character or a coin block under it no longer drops out for single frames. Before, it went missing now and then, most often in a big window.
