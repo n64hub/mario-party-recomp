@@ -407,6 +407,22 @@ func = "func_8002D614"
 before_vram = 0x8002DA80
 text = "{ void mp_model_pop(uint8_t*, gpr); mp_model_pop(rdram, (gpr)(int32_t)0x800F37DC); }"
 
+# Crane Game's claw shadow, drawn on what lies under the claw as each of its parts again (a decal at the part's matrix
+# of the queue), tagged as that part (lib/mario-party-engine/src/model_ids.cpp, mp_model_again, says why).
+# func_800FC0A0_CraneGame draws the parts of the model in s5 (a1), its part number in s3: each part's gSPMatrix of the
+# matrix at 0x44 of its queue entry (its place in its layer's queue at 0x12 of its 0x5C bytes at the model's 0x80, its
+# layer at the model's 0x28) is already in the list (s2, past it) at 0x800FC280, where the part wasn't left out for lying
+# outside the shadow, its matrix in s1. The tag goes in before that command, and its display list is in by 0x800FC494.
+[[patches.hook]]
+func = "func_800FC0A0_CraneGame"
+before_vram = 0x800FC280
+text = "{ gpr mp_model_again(uint8_t*, gpr, int32_t, gpr, int32_t, gpr, int32_t); int32_t place = (int16_t)MEM_H(0x12, (gpr)(int32_t)MEM_W(0x80, ctx->r21) + (gpr)(int32_t)((int32_t)ctx->r19 * 0x5C)); for (int32_t layer = 0; layer < (int32_t)MEM_BU(0x28, ctx->r21); layer++) place += MEM_BU(layer, (gpr)(int32_t)0x800C3500); gpr matrix = ctx->r18 - 8; uint32_t word0 = MEM_W(0, matrix); uint32_t word1 = MEM_W(4, matrix); gpr at = mp_model_again(rdram, matrix, place, ctx->r17, (int32_t)MEM_W(0, (gpr)(int32_t)0x800F3848), (gpr)(int32_t)MEM_W(0, (gpr)(int32_t)0x800F37E0), MEM_HU(0, (gpr)(int32_t)0x800F50BA) * 8); if (at != matrix) { MEM_W(0, at) = word0; MEM_W(4, at) = word1; ctx->r18 = at + 8; } }"
+
+[[patches.hook]]
+func = "func_800FC0A0_CraneGame"
+before_vram = 0x800FC494
+text = "{ gpr mp_model_again_pop(uint8_t*, gpr); ctx->r18 = mp_model_again_pop(rdram, ctx->r18); }"
+
 # Coin Block Bash's effects (the coins that burst from a block, puffs, sparks, chips and shadows) paired with their
 # own between the game's frames (lib/mario-party-engine/src/model_ids.cpp, mp_effect_push, says how).
 # func_80101748_CoinBlockBash draws its table of them (0x38 bytes each, from the word at 0x80103298), its slot in s3 and
