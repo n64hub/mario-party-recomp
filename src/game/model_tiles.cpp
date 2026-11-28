@@ -52,7 +52,6 @@
 
 #include "recomp.h"
 #include "librecomp/helpers.hpp"
-#include <cstdio>
 #include <algorithm>
 #include <climits>
 
@@ -541,13 +540,16 @@ namespace {
         return -1;
     }
 
-    // The last texel a primitive's tile is clamped at along an axis (rows if t, else columns), -1 for none: where its
-    // coordinates end on an edge between two texels inside the texture (as clamped_last), the line before the edge
-    // clear and the line past it seen, across the texels from to to on the other axis.
+    // The last texel a primitive's tile is clamped at along an axis (rows if t, else columns), -1 for none: the line
+    // its coordinates end in (one they reach past by no more than PAST_EDGE not counted) when it is inside the texture,
+    // clear across the texels from to to on the other axis, and the line past it seen there.
     int32_t picture_last(uint8_t* rdram, bool t, int32_t reach, int32_t from, int32_t to) {
         int32_t last = t ? tile.last_t : tile.last_s;
-        int32_t edge_last = clamped_last(t ? tile.clamp_t : tile.clamp_s, reach, last);
-        if (edge_last == last || to < from) {
+        if (!(t ? tile.clamp_t : tile.clamp_s) || reach <= PAST_EDGE || to < from) {
+            return -1;
+        }
+        int32_t edge_last = (reach - PAST_EDGE - 1) >> 5;
+        if (edge_last >= last) {
             return -1;
         }
         bool seen_past = false;
@@ -570,13 +572,14 @@ namespace {
     // A texture may be a sheet of pictures that triangles of one batch draw parts of, some on a picture with a clear
     // edge and others on the picture past it: Desert Dash's archway signs, a star and a mushroom on the top 32 rows of
     // a 64x64 sheet (row 31 clear), are quads in the same batches as the archway's wood, which is drawn with the bottom
-    // 32. The batches reach past row 32, so the tile isn't clamped (above), and at each sign's bottom edge the filter
-    // mixes in row 32, the wood's top row, a thin dark line under it above the console's resolution.
+    // 32. The batches reach past row 32, so the tile isn't clamped (above). The sign quads end at t 1004..1012, part
+    // way into row 31, where the filter mixes in up to 60% of row 32, the wood's top row: a thin dark line under each
+    // sign, above the console's resolution.
     //
-    // So a triangle (or a quad, the builder's two triangles in one command) that ends on an edge between two texels
-    // inside its texture, the line before the edge clear across it and the line past it seen, is drawn after the
-    // batch's others with the tile clamped at that edge, and the tile is set back after: nothing past a picture's clear
-    // edge is mixed into it, and what a triangle shows is as it was. The batch's commands end with its vertices' load
+    // So a triangle (or a quad, the builder's two triangles in one command) whose coordinates end in a line inside its
+    // texture that is clear across it, the line past it seen, is drawn after the batch's others with the tile clamped
+    // at that line, and the tile is set back after: the triangle reaches no texel past it, so nothing changes but the
+    // picture past its clear edge isn't mixed into it. The batch's commands end with its vertices' load
     // and its triangles (func_8002E488), so the triangles are written again in that order, with the batch's commands
     // after them where the tile is set.
     void split_pictures(uint8_t* rdram, gpr end, gpr vertices, int32_t first) {
