@@ -1,2 +1,2 @@
-- In Teetering Towers, the full moon at the start and the end is one smooth picture again in a big window. Since v0.2.30, a line ran across it a quarter of the way down and another down its middle.
+- In Cast Aways in a window wider than 4:3, the chests and coin bags of the back row float in front of the near-left island as they leave on the left, instead of sinking into its sand.
 - In Bobsled Run, the ice brick walls now stay whole as the sleds race past them, in both views. Before, at a high frame rate they split at their seams between the game's frames, with dark gaps and uneven heights, and snapped back.
