@@ -52,8 +52,8 @@
 
 #include "recomp.h"
 #include "librecomp/helpers.hpp"
-#include <cstdio>
 #include <algorithm>
+#include <climits>
 
 namespace {
     // The builder's globals (src/2C0C0.c).
@@ -86,6 +86,12 @@ namespace {
         bool clamp_s = false, clamp_t = false;
         int32_t reach_s = 0, reach_t = 0;   // the furthest its batches' coordinates go (10.5)
         bool any = false;
+        uint32_t format = 0;                // its SetTile's first word (format, size) and second (palette)
+        uint32_t palette = 0;
+        // The SetTileSize commands after a batch's pictures (below) that set the tile back as the batches draw it.
+        static constexpr int MAX_RESTORES = 16;
+        gpr restores[MAX_RESTORES] = {};
+        int restore_count = 0;
     } tile;
 
     // The last texel to clamp an axis at: the edge the batches reach, or the tile's own last texel.
@@ -493,6 +499,184 @@ namespace {
         picture.width = width;
         picture.height = height;
     }
+
+    constexpr uint32_t G_VTX = 0x01;
+    constexpr uint32_t G_TRI1 = 0x05;
+    constexpr uint32_t G_QUAD = 0x07;
+    constexpr uint32_t G_RDPTILESYNC = 0xE8;
+    constexpr uint32_t G_IM_FMT_RGBA = 0;
+    constexpr uint32_t G_IM_FMT_IA = 3;
+
+    // Whether a texel of the tracked tile's texture is seen: 1 if it is (alpha above 0), 0 if it is clear, -1 if its
+    // format doesn't say (an I texture, or a CI one with a palette not known).
+    int texel_seen(uint8_t* rdram, int32_t x, int32_t y) {
+        uint32_t fmt = (tile.format >> 21) & 7, siz = (tile.format >> 19) & 3;
+        int32_t i = y * (tile.last_s + 1) + x;
+        uint32_t v;
+        if (siz == 0) {
+            uint32_t b = MEM_BU(i >> 1, tile.texture);
+            v = (i & 1) ? (b & 0xF) : (b >> 4);
+        } else if (siz == 1) {
+            v = MEM_BU(i, tile.texture);
+        } else if (siz == 2) {
+            v = (uint16_t)MEM_H(i * 2, tile.texture);
+        } else {
+            return fmt == G_IM_FMT_RGBA ? MEM_BU(i * 4 + 3, tile.texture) != 0 : -1;
+        }
+        if (fmt == G_IM_FMT_CI) {
+            // A CI4 texture's palette is the 16 colours at its slot, those the builder loads at slot 0.
+            if (siz > 1 || picture_palette == 0 || (siz == 0 && tile.palette != 0) || (int32_t)v >= picture_colours) {
+                return -1;
+            }
+            uint32_t c = (uint16_t)MEM_H(v * 2, picture_palette);
+            return picture_rgba16 ? (c & 1) != 0 : (c & 0xFF) != 0;
+        }
+        if (fmt == G_IM_FMT_RGBA && siz == 2) {
+            return (v & 1) != 0;
+        }
+        if (fmt == G_IM_FMT_IA) {
+            return (siz == 0 ? v & 1 : siz == 1 ? v & 0xF : v & 0xFF) != 0;
+        }
+        return -1;
+    }
+
+    // The last texel a primitive's tile is clamped at along an axis (rows if t, else columns), -1 for none: the line
+    // its coordinates end in (one they reach past by no more than PAST_EDGE not counted) when it is inside the texture,
+    // clear across the texels from to to on the other axis, and the line past it seen there.
+    int32_t picture_last(uint8_t* rdram, bool t, int32_t reach, int32_t from, int32_t to) {
+        int32_t last = t ? tile.last_t : tile.last_s;
+        if (!(t ? tile.clamp_t : tile.clamp_s) || reach <= PAST_EDGE || to < from) {
+            return -1;
+        }
+        int32_t edge_last = (reach - PAST_EDGE - 1) >> 5;
+        if (edge_last >= last) {
+            return -1;
+        }
+        bool seen_past = false;
+        for (int32_t i = from; i <= to; i++) {
+            int before = t ? texel_seen(rdram, i, edge_last) : texel_seen(rdram, edge_last, i);
+            int past = t ? texel_seen(rdram, i, edge_last + 1) : texel_seen(rdram, edge_last + 1, i);
+            if (before != 0 || past < 0) {
+                return -1;
+            }
+            seen_past |= past == 1;
+        }
+        return seen_past ? edge_last : -1;
+    }
+
+    // A tile's SetTileSize second word with its last texels.
+    uint32_t tile_size(uint32_t w1, int32_t last_s, int32_t last_t) {
+        return (w1 & 0xFF000000) | ((uint32_t)(last_s << 2) << 12) | (uint32_t)(last_t << 2);
+    }
+
+    // A texture may be a sheet of pictures that triangles of one batch draw parts of, some on a picture with a clear
+    // edge and others on the picture past it: Desert Dash's archway signs, a star and a mushroom on the top 32 rows of
+    // a 64x64 sheet (row 31 clear), are quads in the same batches as the archway's wood, which is drawn with the bottom
+    // 32. The batches reach past row 32, so the tile isn't clamped (above). The sign quads end at t 1004..1012, part
+    // way into row 31, where the filter mixes in up to 60% of row 32, the wood's top row: a thin dark line under each
+    // sign, above the console's resolution.
+    //
+    // So a triangle (or a quad, the builder's two triangles in one command) whose coordinates end in a line inside its
+    // texture that is clear across it, the line past it seen, is drawn after the batch's others with the tile clamped
+    // at that line, and the tile is set back after: the triangle reaches no texel past it, so nothing changes but the
+    // picture past its clear edge isn't mixed into it. The batch's commands end with its vertices' load
+    // and its triangles (func_8002E488), so the triangles are written again in that order, with the batch's commands
+    // after them where the tile is set.
+    void split_pictures(uint8_t* rdram, gpr end, gpr vertices, int32_t first) {
+        if (tile.restore_count == Tile::MAX_RESTORES || (!tile.clamp_s && !tile.clamp_t)) {
+            return;
+        }
+        int32_t width = tile.last_s + 1, height = tile.last_t + 1;
+        if (!in_rdram(tile.texture, (width * height * (4 << ((tile.format >> 19) & 3))) / 8)) {
+            return;
+        }
+        gpr load = 0;
+        for (gpr cmd = batch_start; cmd < end; cmd += 8) {
+            if (((uint32_t)MEM_W(0, cmd) >> 24) == G_VTX) {
+                load = cmd;
+            }
+        }
+        if (load == 0) {
+            return;
+        }
+
+        struct Primitive {
+            uint32_t w0, w1;
+            int32_t last_s, last_t;     // the tile's last texels it is drawn with
+        };
+        constexpr int MAX_PRIMITIVES = 64;
+        Primitive primitives[MAX_PRIMITIVES];
+        int count = 0;
+        bool any = false;
+        for (gpr cmd = load + 8; cmd < end; cmd += 8) {
+            uint32_t w0 = (uint32_t)MEM_W(0, cmd), w1 = (uint32_t)MEM_W(4, cmd);
+            uint32_t op = w0 >> 24;
+            if ((op != G_TRI1 && op != G_QUAD) || count == MAX_PRIMITIVES) {
+                return;
+            }
+            int32_t min_s = INT32_MAX, max_s = INT32_MIN, min_t = INT32_MAX, max_t = INT32_MIN;
+            for (int k = 0; k < (op == G_QUAD ? 6 : 3); k++) {
+                uint32_t word = k < 3 ? w0 : w1;
+                gpr v = vertices + (first + (int32_t)((word >> (16 - (k % 3) * 8)) & 0xFF) / 2) * 16;
+                int32_t s = MEM_H(8, v), t = MEM_H(10, v);
+                min_s = std::min(min_s, s);
+                max_s = std::max(max_s, s);
+                min_t = std::min(min_t, t);
+                max_t = std::max(max_t, t);
+            }
+            // The texels across the primitive on each axis, those its coordinates run over.
+            int32_t from_s = std::max(min_s >> 5, 0), to_s = std::min((max_s - 1) >> 5, tile.last_s);
+            int32_t from_t = std::max(min_t >> 5, 0), to_t = std::min((max_t - 1) >> 5, tile.last_t);
+            int32_t ls = picture_last(rdram, false, max_s, from_t, to_t);
+            int32_t lt = picture_last(rdram, true, max_t, from_s, to_s);
+            primitives[count++] = { w0, w1, ls < 0 ? -1 : ls, lt < 0 ? -1 : lt };
+            any |= ls >= 0 || lt >= 0;
+        }
+        if (!any) {
+            return;
+        }
+
+        // The tile's last texels each clamped primitive is drawn with: its own edge, the tile's as it is on the axis
+        // it isn't clamped on.
+        uint32_t size_w0 = (uint32_t)MEM_W(0, tile.size), size_w1 = (uint32_t)MEM_W(4, tile.size);
+        int32_t now_s = (int32_t)((size_w1 >> 12) & 0xFFF) >> 2, now_t = (int32_t)(size_w1 & 0xFFF) >> 2;
+        for (int i = 0; i < count; i++) {
+            if (primitives[i].last_s >= 0 || primitives[i].last_t >= 0) {
+                primitives[i].last_s = primitives[i].last_s >= 0 ? primitives[i].last_s : now_s;
+                primitives[i].last_t = primitives[i].last_t >= 0 ? primitives[i].last_t : now_t;
+            }
+        }
+
+        gpr out = load + 8;
+        auto write = [&](uint32_t w0, uint32_t w1) {
+            MEM_W(0, out) = (int32_t)w0;
+            MEM_W(4, out) = (int32_t)w1;
+            out += 8;
+        };
+        for (int i = 0; i < count; i++) {
+            if (primitives[i].last_s < 0 && primitives[i].last_t < 0) {
+                write(primitives[i].w0, primitives[i].w1);
+            }
+        }
+        for (int i = 0; i < count; i++) {
+            if (primitives[i].last_s < 0 && primitives[i].last_t < 0) {
+                continue;
+            }
+            int32_t ls = primitives[i].last_s, lt = primitives[i].last_t;
+            write(G_RDPTILESYNC << 24, 0);
+            write(size_w0, tile_size(size_w1, ls, lt));
+            for (int j = i; j < count; j++) {
+                if (primitives[j].last_s == ls && primitives[j].last_t == lt) {
+                    write(primitives[j].w0, primitives[j].w1);
+                    primitives[j].last_s = primitives[j].last_t = -1;
+                }
+            }
+        }
+        write(G_RDPTILESYNC << 24, 0);
+        tile.restores[tile.restore_count++] = out;
+        write(size_w0, size_w1);
+        MEM_W(0, DL_HEAD) = (int32_t)out;
+    }
 }
 
 // The instructions setup about to make its title cloud (form file 0xB0004), and back from it (above).
@@ -534,6 +718,8 @@ extern "C" void mp_model_batch_end(uint8_t* rdram) {
             // cms, shifts and cmt, shiftt: a shift scales the coordinates, which then aren't the texture's texels.
             tile.clamp_s = (((t1 >> 8) & 3) & G_TX_CLAMP) && (t1 & 0xF) == 0;
             tile.clamp_t = (((t1 >> 18) & 3) & G_TX_CLAMP) && ((t1 >> 10) & 0xF) == 0;
+            tile.format = (uint32_t)MEM_W(0, settile);
+            tile.palette = (t1 >> 20) & 0xF;
         }
     }
 
@@ -603,4 +789,8 @@ extern "C" void mp_model_batch_end(uint8_t* rdram) {
     int32_t last_t = clamped_last(tile.clamp_t, tile.reach_t, tile.last_t);
     uint32_t w1 = (uint32_t)MEM_W(4, tile.size);
     MEM_W(4, tile.size) = (int32_t)((w1 & 0xFF000000) | ((uint32_t)(last_s << 2) << 12) | (uint32_t)(last_t << 2));
+    for (int i = 0; i < tile.restore_count; i++) {
+        MEM_W(4, tile.restores[i]) = MEM_W(4, tile.size);
+    }
+    split_pictures(rdram, end, vertices, first);
 }
