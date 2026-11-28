@@ -1,2 +1,3 @@
 - In Cast Aways in a window wider than 4:3, the chests and coin bags of the back row float in front of the near-left island as they leave on the left, instead of sinking into its sand.
 - In Desert Dash, the archway's star and mushroom signs no longer have a thin dark line under them as the camera pans in.
+- In Mushroom Mix-Up, the characters' feet stay on the center mushroom as the camera moves in at the start. Before, at a high refresh rate, their shoes vanished into the mushroom for a moment, several times in the first second.
