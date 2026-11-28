@@ -32,4 +32,6 @@ RECOMP_PATCH void OvlLoad(s32 overlayIndex) {
 
     // @recomp Whether the scene is drawn at 4:3 (widescreen.c).
     widescreen_overlay(overlayIndex);
+    // @recomp Whether Cast Aways is the one loaded (cast_aways.c).
+    cast_aways_overlay(overlayIndex);
 }

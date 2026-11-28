@@ -522,6 +522,14 @@ func = "func_800F76B8_CastAways"
 before_vram = 0x800F79BC
 text = "{ void cast_aways_item_spawned(uint8_t*, recomp_context*); recomp_context c = *ctx; c.r4 = ctx->r18; c.r5 = ctx->r19; cast_aways_item_spawned(rdram, &c); }"
 
+# Cast Aways' back row drawn in front of the near-left island past 4:3's left edge (n64hub/mario-party-recomp#190,
+# patches/cast_aways.c): omMain, once it has set an object's (s0) first model to its place, turn and scale, where
+# every object's path through its loop meets; only an object whose frame function (0x14) is the item's goes on.
+[[patches.hook]]
+func = "omMain"
+before_vram = 0x8005EACC
+text = "{ if ((uint32_t)MEM_W(0x14, ctx->r16) == 0x800F7A38u) { void cast_aways_item_drawn(uint8_t*, recomp_context*); recomp_context c = *ctx; c.r4 = ctx->r16; cast_aways_item_drawn(rdram, &c); } }"
+
 # Board Select's TV static at the size it has every other frame from the frame it shows (n64hub/mario-party-recomp#179).
 # On a board change, func_800FD804_AdventureModeSetup sets the static (the TV object's model[1]) to the object's own
 # scale, (0.45, 0.5, 0.45), shows it and sleeps 10 frames; the object's frame function, func_800FE68C, sets it to
