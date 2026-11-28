@@ -8,7 +8,11 @@
 #include "../lib/mario-party-engine/patches/board_back.h"
 #include "rt64_extended_gbi.h"
 
+// A half or a quarter of a screen split between players is widened out to the window's side too (CAMERA_VIEW_SPLIT).
 static s32 widened(unk_Struct00* camera) {
+    if (camera_view_split(camera->unkD8.x, camera->unkD8.z)) {
+        return CAMERA_VIEW_SPLIT;
+    }
     return camera_view_widened(camera->unkD8.x, camera->unkD8.z);
 }
 
@@ -33,8 +37,8 @@ RECOMP_PATCH void func_8001D658(s16 index, Gfx** gfx) {
 RECOMP_PATCH void func_8001D7DC(s16 index, Gfx** gfx) {
     unk_Struct00* camera = &D_800C3110[index];
 
-    // @recomp The whole screen, or the border, to the window's edges.
-    camera_view_scissor(gfx, camera->unkD8.x, camera->unkD8.y, camera->unkD8.z, camera->unkD8.w);
+    // @recomp The whole screen, or the border, to the window's edges, and a split screen's piece to the window's side.
+    camera_view_split_scissor(gfx, camera->unkD8.x, camera->unkD8.y, camera->unkD8.z, camera->unkD8.w);
 }
 
 // The scenes the game draws at 4:3 whatever the window's width, by their overlay (OvlLoad, overlays.c, calls
