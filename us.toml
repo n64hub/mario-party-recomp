@@ -55,7 +55,7 @@ text = "{ void mp_survey_goto(uint8_t*, gpr*, gpr*, gpr*); mp_survey_goto(rdram,
 # rectangle's right edge onto its scissor's a pixel from it. The next frame's clear (func_80025658's fill rectangle of
 # the background's colour), under the text's 319, stayed inside 4:3, so the window's sides were never cleared and kept
 # what earlier frames left there: Bobsled Run's views, whose sky is the clear's dark blue, had flat white past 4:3's
-# sides, and Bowl Over's and Desert Dash's views, kept at 4:3, a still picture beside them.
+# sides, and Bowl Over's views, kept at 4:3, a still picture beside them.
 [[patches.hook]]
 func = "pfDrawFonts"
 before_vram = 0x800625BC
@@ -577,3 +577,19 @@ text = "{ if ((uint32_t)MEM_W(0x14, ctx->r16) == 0x800F7A38u) { void cast_aways_
 func = "func_800FD804_AdventureModeSetup"
 before_vram = 0x800FDDFC
 text = "{ union { uint32_t u; float f; } s; s.u = (uint32_t)MEM_W(0x30, ctx->r17); s.f *= 1.1f; ctx->r4 = MEM_H(0x2, (gpr)(int32_t)MEM_W(0x40, ctx->r17)); ctx->r5 = ctx->r6 = ctx->r7 = (int32_t)s.u; func_80025830(rdram, ctx); }"
+
+# Desert Dash draws each player's sky, behind the half's 3D, as rows of texture rectangles in a list of its own (a0 is
+# the address of the half's list pointer, at 0x800FC608, each list 0x1000 bytes from func_800FA460_DesertDash), ended
+# by the gSPEndDisplayList it writes at s3 + 8. Its halves are widened to the window's sides (patches/widescreen.c), and
+# RT64 kept its rectangles, as wide as a half, in the 4:3 middle: the sky stopped short of the window's edges, the 3D on
+# beside it. The engine stretches the list's rectangles over the window as a picture's (mp_hud_list_picture_end), each
+# half's sky out to its widened half.
+[[patches.hook]]
+func = "func_800FB750_DesertDash"
+before_vram = 0x800FB750
+text = "{ void mp_hud_list_picture_start(uint8_t*, gpr); mp_hud_list_picture_start(rdram, ctx->r4); }"
+
+[[patches.hook]]
+func = "func_800FB750_DesertDash"
+before_vram = 0x800FBFB8
+text = "{ void mp_hud_list_picture_end(uint8_t*, gpr, uint32_t); mp_hud_list_picture_end(rdram, ctx->r19 + 8, 0x1000); }"
