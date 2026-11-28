@@ -1,4 +1,5 @@
 #include "patches.h"
+#include "engine/ovlman.h"
 
 // Cast Aways (overlay 0x2B)'s sky, the picture of blue sky and clouds behind its sea and islands (sprite file
 // 0x3F0002, its frame 160x120 drawn at twice its size, 320x240), which its setup (func_800F71AC_CastAways) centres at
@@ -106,4 +107,70 @@ void cast_aways_item_spawned(omObjData* item, u8* work) {
         out = wider;
     }
     item->trans.x += ((velocity < 0.0f) ? out : -out) / per_unit;
+}
+
+// The back row (z 300), moving left, at a picture wider than 4:3: past 4:3's left edge, where the game deleted it and
+// now goes on to the window's, it passes the near-left island, whose shore there is nearer the camera than the row,
+// so an item sank into the sand to all but its underwater part (n64hub/mario-party-recomp#190). At 4:3 the row
+// passes in front of the island's tip, the rest of it outside the picture.
+//
+// Drawn, not moved: omMain (objmain.c) sets each object's first model to its place and scale right after its frame
+// function, and us.toml's hook just after that calls this with the object. An item of the back row still floating
+// (its work's 0x04 is 0) and past 4:3's left edge has its model moved toward the camera along its line of sight, to t
+// of the way there, and scaled by t: the same place and size on the screen, but at a depth in front of the shore.
+// t comes in over the first CAST_AWAYS_PULL_RAMP units past the edge. The object's own place, which the rods'
+// catching and the game's bounds read, is the game's, and at 4:3 nothing is moved.
+#define CAST_AWAYS_OVERLAY 0x2B
+#define CAST_AWAYS_BACK_ROW_UNDER 600.0f
+#define CAST_AWAYS_PULLED_Z 600.0f
+#define CAST_AWAYS_PULL_RAMP 16.0f
+
+void func_800F7A38_CastAways(omObjData* item);
+
+static s32 cast_aways_loaded;
+
+// Each overlay that loads (OvlLoad, overlays.c): Cast Aways, or another in its place.
+void cast_aways_overlay(s32 overlay) {
+    if (overlay == CAST_AWAYS_OVERLAY) {
+        cast_aways_loaded = TRUE;
+    } else if (overlay_table[overlay].ram_start == overlay_table[CAST_AWAYS_OVERLAY].ram_start) {
+        cast_aways_loaded = FALSE;
+    }
+}
+
+void cast_aways_item_drawn(omObjData* item) {
+    Vec3f* camera;
+    Vec3f at;
+    Vec2f screen;
+    f32 t;
+    f32 ramp;
+    s16 model;
+
+    if (!cast_aways_loaded || item->func_ptr != (void*)func_800F7A38_CastAways || (item->stat & 3) != 0 ||
+        item->model == NULL || item->unk_50 == NULL || cast_aways_wider() <= 0.0f) {
+        return;
+    }
+    model = item->model[0];
+    if (model < 0 || *(u16*)((u8*)item->unk_50 + 0x04) != 0 || item->trans.z >= CAST_AWAYS_BACK_ROW_UNDER) {
+        return;
+    }
+    at.x = item->trans.x;
+    at.y = item->trans.y;
+    at.z = item->trans.z;
+    Convert3DTo2D(0, &at, &screen);
+    if (screen.x >= 0.0f) {
+        return;
+    }
+    camera = &D_800C3110[0].pos;
+    if (camera->z <= CAST_AWAYS_PULLED_Z) {
+        return;
+    }
+    t = (camera->z - CAST_AWAYS_PULLED_Z) / (camera->z - at.z);
+    ramp = -screen.x / CAST_AWAYS_PULL_RAMP;
+    if (ramp < 1.0f) {
+        t = 1.0f + (t - 1.0f) * ramp;
+    }
+    func_80025798(model, camera->x + (at.x - camera->x) * t, camera->y + (at.y - camera->y) * t,
+                  camera->z + (at.z - camera->z) * t);
+    func_80025830(model, item->scale.x * t, item->scale.y * t, item->scale.z * t);
 }
